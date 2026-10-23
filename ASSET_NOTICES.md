@@ -24,3 +24,8 @@ Figma — референс структуры и художественного 
 `essence-stone-cutaway-v4.webp` и `essence-sense-cutaway-v4.webp` — новые художественные иллюстрации, созданные встроенным image_gen по референсам исходного одиночного фрагмента стенки Salini. Геометрия предыдущего варианта с лишним изгибом отклонена и в релиз не входит. Иллюстрации не являются фотографиями изделий или инженерными чертежами. Приложение использует те же изображения в PNG; общая маска отображения исключает остаточные пиксели по внешнему контуру. Набор промптов сохранён в исходном проекте.
 
 `showroom-film-poster.webp` — оптимизированная версия официального `https://salini-srl.com/local/templates/main/assets/images/about-bg-2.jpg`. Видео `https://salini-srl.com/local/templates/main/assets/videos/salini_about_2.mp4` загружается с Salini только после нажатия; это 10-секундная видеозарисовка шоурума. Отдельная ссылка ведёт на подтверждённый фильм о производстве на Rutube. Фирменный зелёный `#02343B` подтверждён оригинальными CSS и SVG-логотипом Salini.
+
+
+## Collection cinema — 23.10.2026
+
+`assets/cinema-{ninfea,aria,opera,greca}.mp4` and matching WebP posters reuse the owner-approved generated films in the Salini iOS app, at the owner's explicit request. Ninfea v4; Aria, Opera, Greca v2. Web copies are H.264 640px derivatives without audio; source files remain unchanged. These are artistic collection stories, never product documentation or real showroom footage. Source hashes and conversion settings are retained in the private source manifest.

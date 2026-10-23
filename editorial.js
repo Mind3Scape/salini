@@ -71,7 +71,8 @@
     products = [...products, ...(record.relatedProducts || []).filter(p => !products.some(x => x.id === p.id))];
     const hero = record.images?.[0]?.src;
     let skippedHero = false;
-    return (record.blocks || []).map(block => {
+    const blocks = record.blocks || [];
+    let result = blocks.map(block => {
       if (block.type === 'image') {
         if (!skippedHero && block.image?.src === hero) { skippedHero = true; return ''; }
         return `<figure class="ed-figure">${photo(block.image, record.title)}</figure>`;
@@ -80,7 +81,22 @@
       if (block.type === 'heading') return `<h2>${richHTML(block.html || esc(block.text), products)}</h2>`;
       if (block.type === 'quote') return `<blockquote>${richHTML(block.html || esc(block.text), products)}</blockquote>`;
       return `<p>${richHTML(block.html || esc(block.text), products)}</p>`;
-    }).join('');
+    });
+    if (record.path === '/new') {
+      // Keep every official block, grouping image/link pairs into editorial cards.
+      const direct = ['30897','32698','30919'];
+      let launchedIndex = 0;
+      for (let i=0;i<blocks.length;i++) {
+        if (blocks[i].type !== 'image' || !blocks[i+1]?.text?.match(/Запущено|В разработке/)) continue;
+        const launched = blocks[i+1].text.includes('Запущено');
+        const productId = launched ? direct[launchedIndex++] : null;
+        result[i] = '<article class="ed-launch-card">' + result[i];
+        result[i+1] += (productId ? `<a class="line-link" href="#/product/${productId}">Материал, цвет и размеры ↗</a>` : '') + '</article>';
+        if (!(blocks[i-2]?.type === 'image' && /Запущено|В разработке/.test(blocks[i-1]?.text || ''))) result[i] = '<div class="ed-launch-grid">' + result[i];
+        if (!(blocks[i+2]?.type === 'image' && /Запущено|В разработке/.test(blocks[i+3]?.text || ''))) result[i+1] += '</div>';
+      }
+    }
+    return result.join('');
   }
   function productSection(record, products) {
     const associated = (record.productIds || []).map(id => products.find(p => p.id === id) || (record.relatedProducts || []).find(p => p.id === id)).filter(Boolean);
@@ -88,10 +104,11 @@
     return `<section class="ed-related"><div class="ed-section-head"><span class="eyebrow">Изделия в материале</span><h2>Продолжение истории</h2><p>Связи с изделиями сохранены по ссылкам оригинальной публикации.</p></div><div class="ed-product-grid">${associated.map(p => `<a class="ed-product-card" href="#/product/${encodeURIComponent(p.id)}">${photo(p.image, p.name)}<span>${esc(p.subtitle || p.category)}</span><h3>${esc(p.name)}</h3><p>${esc(p.dimensionsLabel)}</p></a>`).join('')}</div></section>`;
   }
   function detail(record, products) {
+    const displayTitle = record.path === '/about' ? 'Мир Salini.' : record.title;
     const back = record.kind === 'collections' ? ['Коллекции', '/collections'] : record.kind === 'articles' ? ['Журнал', '/journal'] : record.kind === 'projects' ? ['Проекты', '/projects'] : [record.title, null];
     const subtitle = record.kind === 'collections' ? 'Коллекция Salini' : record.category || (record.kind === 'projects' ? 'Галерея проектов' : 'Мир Salini');
     const relatedCTA = record.path === '/cooperation' ? `<section class="ed-contact"><span class="eyebrow">Начать разговор</span><h2>Создадим пространство вместе</h2><p>Дизайнерам и архитекторам — профессиональная поддержка. Партнёрам — условия сотрудничества напрямую от Salini.</p><div><a class="ed-action" href="mailto:design@salini-srl.com">Написать о проекте ↗</a><a class="ed-action ed-action-light" href="mailto:info@salini-srl.com">Стать партнёром ↗</a></div></section>` : '';
-    return `<article class="ed-page ed-detail wrap" data-editorial-route="${esc(record.path)}">${breadcrumb(...back)}<header class="ed-detail-head"><span class="eyebrow">${esc(subtitle)}</span><h1>${esc(record.title)}</h1>${record.publishedAt || record.author ? `<p class="ed-byline">${[record.publishedAt && date(record.publishedAt), record.author].filter(Boolean).map(esc).join(' · ')}</p>` : ''}${record.authors?.length ? `<p class="ed-byline">Дизайнер: ${record.authors.map(esc).join(', ')}</p>` : ''}</header>${record.images?.length ? `<figure class="ed-cover">${photo(record.images[0], record.title, {eager:true})}</figure>` : ''}<div class="ed-reading-layout">${sourceNote(record)}<div class="ed-prose">${renderBlocks(record, products)}</div></div>${productSection(record, products)}${relatedCTA}<a class="ed-back" href="${esc(link(back[1] || '/'))}">← ${back[1] ? 'Ко всем материалам' : 'На главную'}</a></article>`;
+    return `<article class="ed-page ed-detail wrap" data-editorial-route="${esc(record.path)}">${breadcrumb(...back)}<header class="ed-detail-head"><span class="eyebrow">${esc(subtitle)}</span><h1>${esc(displayTitle)}</h1>${record.path === "/about" ? `<p class="ed-about-intro">${esc(record.title)}</p>` : ""}${record.publishedAt || record.author ? `<p class="ed-byline">${[record.publishedAt && date(record.publishedAt), record.author].filter(Boolean).map(esc).join(' · ')}</p>` : ''}${record.authors?.length ? `<p class="ed-byline">Дизайнер: ${record.authors.map(esc).join(', ')}</p>` : ''}</header>${record.images?.length ? `<figure class="ed-cover">${photo(record.images[0], record.title, {eager:true})}</figure>` : ''}<div class="ed-reading-layout">${sourceNote(record)}<div class="ed-prose">${renderBlocks(record, products)}</div></div>${productSection(record, products)}${relatedCTA}<a class="ed-back" href="${esc(link(back[1] || '/'))}">← ${back[1] ? 'Ко всем материалам' : 'На главную'}</a></article>`;
   }
   const indexConfig = {
     '/collections': {key:'collections', label:'Коллекции', eyebrow:'Форма. Характер. Пространство.', title:'Одна философия.<br><em>Разные истории.</em>', text:'Авторские коллекции Salini: от первого замысла до предметов, с которыми начинается интерьер.'},

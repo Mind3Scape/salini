@@ -190,10 +190,14 @@ function productImage(p) {
     : '<div class="no-photo"><span>salini</span><small>Фотография уточняется</small></div>';
 }
 function card(p) {
-  return `<article class="product-card"><button class="save-product" data-save="${esc(p.id)}" aria-label="Добавить в подборку" aria-pressed="false">${heartIcon}</button><a class="product-card-link" href="${productUrl(p)}"><div class="image-wrap">${productImage(p)}</div><div class="product-category">${esc(p.subtitle)}</div><h2>${esc(p.name)}</h2><p>${esc(p.dimensionsLabel)}</p></a></article>`;
+  return `<article class="product-card">${window.SaliniAtelier.isNew(p)?'<span class="product-new">Новинка</span>':''}<button class="save-product" data-save="${esc(p.id)}" aria-label="Добавить в подборку" aria-pressed="false">${heartIcon}</button><a class="product-card-link" href="${productUrl(p)}"><div class="image-wrap">${productImage(p)}</div><div class="product-category">${esc(p.subtitle)}</div><h2>${esc(p.name)}</h2><p>${esc(p.dimensionsLabel)}</p></a>${window.SaliniAtelier.cardDetails(p)}</article>`;
 }
 function renderHome() {
   main.innerHTML = $("#home-template").innerHTML;
+  const collections=main.querySelector('.maison-collections');
+  const novelties=main.querySelector('.atelier-new');
+  if(novelties) novelties.outerHTML=window.SaliniAtelier.newSection(data.products,card);
+  else collections?.insertAdjacentHTML('afterend',window.SaliniAtelier.newSection(data.products,card)+window.SaliniAtelier.cinema());
   slideIndex = 0;
   window.SaliniHome?.mount(main);
 }
@@ -237,12 +241,14 @@ function setSlide(delta) {
 }
 function renderCatalog(params = new URLSearchParams()) {
   const requestedCategory = params.get("category") || "all";
+  let newOnly=params.get("new")==="1";
   let sourceScope = params.get("source") || "";
   sourceScope = /^\/(?!\/)[^?#\\]*$/.test(sourceScope) ? sourceScope.replace(/\/?$/, "/") : "";
   const category = Object.hasOwn(categories,requestedCategory)?requestedCategory:"all", collection = params.get("collection") || "", query = params.get("q") || "";
   const options = (values, selected = "") => [...new Set(values.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ru")).map(value=>`<option value="${esc(value)}" ${value===selected?"selected":""}>${esc(value)}</option>`).join("");
   main.innerHTML = pageHeading(collection || (sourceScope?"Подборка по разделу Salini":"Каталог"), "Выберите форму, материал и размер. Сохраняйте идеи для вашего пространства и продолжайте выбор на iPhone.") +
     `<section class="catalog-tools" aria-label="Фильтры каталога">${sourceScope?`<p class="small-note" id="catalog-source-note">Раздел официального каталога: ${esc(sourceScope)}</p>`:""}<div class="catalog-categories">${Object.entries(categories).map(([id,label])=>`<button class="filter-chip" data-category="${id}" aria-pressed="${id===category}">${label}</button>`).join("")}</div><div class="catalog-toolbar"><label class="field filter-search"><span class="sr-only">Поиск по каталогу</span><input id="catalog-search" type="search" placeholder="Название или артикул" value="${esc(query)}"></label><button class="button catalog-filter-toggle" id="catalog-filter-open" aria-haspopup="dialog" aria-controls="catalog-filter-dialog">Фильтры <span class="filter-count" id="catalog-filter-count" hidden></span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2" fill="var(--paper)"/><circle cx="15" cy="17" r="2" fill="var(--paper)"/></svg></button></div><dialog class="catalog-filter-dialog" id="catalog-filter-dialog" aria-labelledby="catalog-filter-title"><div class="catalog-filter-header"><h2 id="catalog-filter-title">Подобрать изделие</h2><form method="dialog"><button class="icon-button" aria-label="Закрыть фильтры">×</button></form></div><div class="catalog-filter-content"><div class="filter-row"><label class="field">Коллекция<select id="collection-filter"><option value="">Все коллекции</option>${options(data.products.flatMap(p=>[p.collection,...(p.collections || [])]),collection)}</select></label><label class="field">Материал<select id="material-filter"><option value="">Все материалы</option>${options(data.products.flatMap(p=>p.materials),params.get("material"))}</select></label><label class="field">Порядок<select id="sort-filter"><option value="curated">Выбор Salini</option><option value="name" ${params.get("sort")==="name"?"selected":""}>По названию</option></select></label></div><div class="filter-row"><label class="field">Тип и установка<select id="subcategory-filter"><option value="">Все типы</option></select></label><label class="field">Длина от, мм<input id="length-from" type="number" inputmode="numeric" min="0" step="1" placeholder="Любая" value="${esc(params.get("lengthFrom") || "")}" aria-describedby="length-filter-note length-filter-error"></label><label class="field">Длина до, мм<input id="length-to" type="number" inputmode="numeric" min="0" step="1" placeholder="Любая" value="${esc(params.get("lengthTo") || "")}" aria-describedby="length-filter-note length-filter-error"></label><button class="line-link" id="catalog-reset">Сбросить фильтры <span aria-hidden="true">↺</span></button></div><p class="catalog-filter-error" id="length-filter-error" role="status" hidden></p><p class="small-note" id="length-filter-note">Для регулируемых размеров учитывается пересечение диапазонов. Изделия без указанной длины не участвуют в фильтре по длине.</p><label class="options-check"><input type="checkbox" id="include-options" ${params.get("options")==="1"?"checked":""}> Показывать опции и доработки изделий</label></div><form method="dialog" class="catalog-filter-done"><button class="button button-dark" id="catalog-filter-apply">Показать изделия</button></form></dialog><div class="results-count" role="status" aria-live="polite"></div></section><section class="catalog-grid wrap" aria-label="Изделия"></section><div class="catalog-end"><p>${data.canonicalProductCount || 305} изделий из каталога приложения от ${String(data.snapshotDate).split("-").reverse().join(".")}${data.liveReferenceCount?`; ${data.liveReferenceCount} актуальные страницы отдельных исполнений связаны с существующими моделями`:""}. Дата источника указана в каждой карточке. Цены и наличие уточняются в Salini.</p><a class="line-link" href="#/documents">Документы и 3D-модели <span aria-hidden="true">↗︎</span></a></div>`;
+  $('.catalog-categories').insertAdjacentHTML('beforebegin',`<div class="catalog-discover"><button class="filter-chip" id="catalog-new" aria-pressed="${newOnly}">Новинки Salini</button><a class="line-link" href="#/new">Истории новых коллекций ↗</a></div>`);
   $("#catalog-filter-open").addEventListener("click",()=>$("#catalog-filter-dialog").showModal());
   let selectedCategory = Object.hasOwn(categories,category)?category:"all";
   let shown = Math.min(data.products.length,Math.max(36,Number.parseInt(params.get("shown") || "36",10)||36));
@@ -267,11 +273,12 @@ function renderCatalog(params = new URLSearchParams()) {
     $("#length-from").setAttribute("aria-invalid",Boolean(invalid));$("#length-to").setAttribute("aria-invalid",Boolean(invalid));
     let products=invalid?[]:data.products.filter(p=>{
       const dimensions=lengthRange(p);
-      return (!sourceScope||new URL(p.sourceUrl).pathname.startsWith(sourceScope))&&(includeOptions||!p.isOption)&&(!material||p.materials.includes(material))&&(selectedCategory==="all"||p.categoryId===selectedCategory)&&(!c||p.collection===c||p.collections?.includes(c))&&(!type||(p.subcategory||p.type)===type)&&matches(p,q)&&((from===null&&to===null)||(dimensions&&dimensions[1]>=(from??-Infinity)&&dimensions[0]<=(to??Infinity)));
+      return (!newOnly||window.SaliniAtelier.isNew(p))&&(!sourceScope||new URL(p.sourceUrl).pathname.startsWith(sourceScope))&&(includeOptions||!p.isOption)&&(!material||p.materials.includes(material))&&(selectedCategory==="all"||p.categoryId===selectedCategory)&&(!c||p.collection===c||p.collections?.includes(c))&&(!type||(p.subcategory||p.type)===type)&&matches(p,q)&&((from===null&&to===null)||(dimensions&&dimensions[1]>=(from??-Infinity)&&dimensions[0]<=(to??Infinity)));
     });
     if(sort==="name")products.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
     else if(q.trim())products.sort((a,b)=>matches(a,q,"rank")-matches(b,q,"rank"));
     const next=new URLSearchParams();
+    if(newOnly)next.set("new","1");
     if(sourceScope)next.set("source",sourceScope);
     if(selectedCategory!=="all")next.set("category",selectedCategory);if(c)next.set("collection",c);if(q)next.set("q",q);if(material)next.set("material",material);if(type)next.set("subcategory",type);if(sort!=="curated")next.set("sort",sort);if(includeOptions)next.set("options","1");if(from!==null)next.set("lengthFrom",String(from));if(to!==null)next.set("lengthTo",String(to));
     const rememberURL=()=>{if(shown>36)next.set("shown",String(shown));else next.delete("shown");history.replaceState(history.state,"",routeURL(`/catalog${next.size?"?"+next:""}`));};
@@ -290,12 +297,13 @@ function renderCatalog(params = new URLSearchParams()) {
     $("#catalog-filter-apply").disabled=invalid;
     $("#length-filter-error").hidden=!invalid;$("#length-filter-error").textContent=invalid?"Укажите неотрицательные размеры. Значение «от» должно быть не больше значения «до».":"";
     $(".results-count").textContent=invalid?"Неверный диапазон длины":`Найдено ${products.length}${q.trim()&&products.some(p=>matches(p,q,"variant"))?" · точное совпадение артикула первым":""}`;
-    $(".page-heading h1").textContent=c||(sourceScope?"Подборка по разделу Salini":selectedCategory==="all"?"Каталог":categories[selectedCategory]);
+    $(".page-heading h1").textContent=c||(sourceScope?"Подборка по разделу Salini":selectedCategory==="all"?(newOnly?"Новинки Salini":"Каталог"):categories[selectedCategory]);
   }
+  $('#catalog-new').addEventListener('click',()=>{newOnly=!newOnly;$('#catalog-new').setAttribute('aria-pressed',String(newOnly));filter();});
   $$('[data-category]',main).forEach(b=>b.addEventListener("click",()=>{selectedCategory=b.dataset.category;$$('[data-category]',main).forEach(c=>c.setAttribute("aria-pressed",c===b));updateTypes();filter();}));
   ["catalog-search","length-from","length-to"].forEach(id=>$("#"+id).addEventListener("input",()=>filter()));
   ["collection-filter","sort-filter","material-filter","subcategory-filter","include-options"].forEach(id=>$("#"+id).addEventListener("change",()=>filter()));
-  $("#catalog-reset").addEventListener("click",()=>{sourceScope="";$("#catalog-source-note")?.remove();selectedCategory="all";["catalog-search","length-from","length-to","collection-filter","material-filter"].forEach(id=>$("#"+id).value="");$("#sort-filter").value="curated";$("#include-options").checked=false;updateTypes("");$$('[data-category]',main).forEach(b=>b.setAttribute("aria-pressed",b.dataset.category==="all"));filter();});
+  $("#catalog-reset").addEventListener("click",()=>{newOnly=false;$("#catalog-new").setAttribute("aria-pressed","false");sourceScope="";$("#catalog-source-note")?.remove();selectedCategory="all";["catalog-search","length-from","length-to","collection-filter","material-filter"].forEach(id=>$("#"+id).value="");$("#sort-filter").value="curated";$("#include-options").checked=false;updateTypes("");$$('[data-category]',main).forEach(b=>b.setAttribute("aria-pressed",b.dataset.category==="all"));filter();});
   grid.addEventListener("click",event=>{if(event.target.closest(".product-card-link"))try{sessionStorage.setItem("salini-catalog-context",JSON.stringify({href:location.href,scrollY:window.scrollY,at:Date.now()}));}catch{}},{capture:true});
   filter(false);
   try {
@@ -323,17 +331,41 @@ function renderProduct(id, params = new URLSearchParams()) {
     return `<section class="live-reference" aria-label="Актуальное исполнение"><h3>${esc(ref.name)}</h3><p class="small-note">Проверено ${esc(ref.sourceDate.split("-").reverse().join("."))}. ${esc(note)}</p><p>${esc(ref.dimensionsLabel)} · ${esc(ref.variants.map(v=>v.sku).filter(Boolean).join(" / "))}</p><details><summary class="line-link">Описание актуального исполнения</summary><p>${esc(ref.description)}</p>${ref.gallery.map(im=>`<img src="${esc(im.src)}" alt="${esc(ref.name)}" width="${im.width}" height="${im.height}" loading="lazy" style="width:100%;height:auto;border-radius:var(--radius-card)">`).join("")}</details><a class="button" href="${esc(ref.sourceUrl)}" target="_blank" rel="noopener">Открыть это исполнение <span aria-hidden="true">↗︎</span></a></section>`;
   }).join("");
   document.title = `${p.name} — Salini`;
-  main.innerHTML = `<div class="page-heading wrap">${breadcrumb(p.name)}<a class="line-link" href="${esc(back)}">← К каталогу</a></div><section class="detail wrap"><div class="detail-photo">${productImage(p)}${image?'<button class="line-link" id="product-image-open">Рассмотреть фото <span aria-hidden="true">↗︎</span></button>':""}${gallery.length>1?`<div class="detail-actions" aria-label="Фотографии изделия">${gallery.map((item,i)=>`<button class="button" data-product-image="${i}" aria-pressed="${i===0}" aria-label="Фото ${i+1} из ${gallery.length}">Фото ${i+1}</button>`).join("")}</div>`:""}</div><div class="detail-info"><span class="eyebrow">${p.collection?"Коллекция "+esc(p.collection):esc(p.category)}${p.nativeAvailable===false?" · новинка сайта":""}</span><h1>${esc(p.name)}</h1><p>${esc(p.subtitle)}</p>${p.description?`<details class="product-description"><summary class="line-link">Об изделии</summary><p>${esc(p.bodyDescription?.text || p.description)}</p></details>`:""}<dl class="spec-list"><div><dt>Артикул выбранной версии</dt><dd id="product-sku">${esc(selectedSku || "См. спецификацию")}</dd></div>${specs.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl><div class="detail-actions"><button class="button button-dark" data-save="${esc(p.id)}" aria-pressed="false">В мою подборку ${heartIcon}</button><a class="button" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Варианты и стоимость <span aria-hidden="true">↗︎</span></a></div>${p.nativeAvailable===false?'<p class="small-note">Это изделие пока доступно только в каталоге сайта. Его можно сохранить в веб-подборку и открыть по ссылке.</p><a class="line-link app-product-link" href="#/app">Приложение Salini для iPhone <span aria-hidden="true">↗︎</span></a>':`<button class="line-link app-product-link" data-app-product="${esc(p.id)}">Продолжить на iPhone <span aria-hidden="true">↗︎</span></button>`}<div class="variant-options"><label class="field">Исполнение<select id="product-variant">${p.variants.map((v,i)=>`<option value="${esc(v.id)}" ${v.id===selected?.id?"selected":""}>${esc(v.title || v.sku || "Вариант "+(i+1))}</option>`).join("")}</select></label><p id="variant-info" class="small-note" aria-live="polite"></p>${(requestedSku&&!skuMatch)||(requestedVariant&&!exactVariant)?'<p class="small-note">Исполнение из ссылки не найдено. Проверьте артикул или выберите доступный вариант ниже.</p>':""}</div><p class="detail-disclaimer">Размеры указаны для базового варианта. Отделка и материал могут менять характеристики. Точные параметры для заказа — в документах изделия и у команды Salini.</p><a class="line-link" href="#/dealers?product=${encodeURIComponent(p.id)}">Посмотреть в салоне <span aria-hidden="true">↗︎</span></a><p class="small-note">Участие изделия в экспозиции и наличие для покупки уточняйте у салона.</p>${liveReferences?`<div class="downloads"><h2>Актуальные исполнения</h2>${liveReferences}</div>`:""}<div class="downloads"><h2>Для вашего проекта</h2>${p.downloads.map(d=>`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)} <span aria-hidden="true">↗︎</span></a>`).join("")}<a href="#/documents?product=${encodeURIComponent(p.id)}">Библиотека документов изделия <span aria-hidden="true">↗︎</span></a></div><p class="small-note">${p.sourceStatus==="current"?"Источник проверен":"Каталог по данным"} ${esc(sourceDate)}. <a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Страница на официальном сайте</a></p><button class="line-link contact-toggle">Помочь с выбором <span aria-hidden="true">↗︎</span></button></div></section>`;
+  main.innerHTML = `<div class="page-heading wrap">${breadcrumb(p.name)}<a class="line-link" href="${esc(back)}">← К каталогу</a></div><section class="detail wrap"><div class="detail-photo">${productImage(p)}${image?'<button class="line-link" id="product-image-open">Рассмотреть фото <span aria-hidden="true">↗︎</span></button>':""}${gallery.length>1?`<div class="detail-thumbs" aria-label="Фотографии изделия">${gallery.map((item,i)=>`<button class="button" data-product-image="${i}" aria-pressed="${i===0}" aria-label="Фото ${i+1} из ${gallery.length}"><img src="${esc(item.src)}" alt="" width="64" height="64"></button>`).join("")}</div>`:""}</div><div class="detail-info"><span class="eyebrow">${p.collection?"Коллекция "+esc(p.collection):esc(p.category)}${p.nativeAvailable===false?" · новинка сайта":""}</span><h1>${esc(p.name)}</h1><p>${esc(p.subtitle)}</p>${p.description?`<details class="product-description"><summary class="line-link">Об изделии</summary><p>${esc(p.bodyDescription?.text || p.description)}</p></details>`:""}<dl class="spec-list"><div><dt>Артикул выбранной версии</dt><dd id="product-sku">${esc(selectedSku || "См. спецификацию")}</dd></div>${specs.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl><div class="detail-actions"><button class="button button-dark" data-save="${esc(p.id)}" aria-pressed="false">В мою подборку ${heartIcon}</button><a class="button" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Варианты и стоимость <span aria-hidden="true">↗︎</span></a></div>${p.nativeAvailable===false?'<p class="small-note">Это изделие пока доступно только в каталоге сайта. Его можно сохранить в веб-подборку и открыть по ссылке.</p><a class="line-link app-product-link" href="#/app">Приложение Salini для iPhone <span aria-hidden="true">↗︎</span></a>':`<button class="line-link app-product-link" data-app-product="${esc(p.id)}">Продолжить на iPhone <span aria-hidden="true">↗︎</span></button>`}<div class="variant-options"><label class="field">Исполнение<select id="product-variant">${p.variants.map((v,i)=>`<option value="${esc(v.id)}" ${v.id===selected?.id?"selected":""}>${esc(v.title || v.sku || "Вариант "+(i+1))}</option>`).join("")}</select></label><p id="variant-info" class="small-note" aria-live="polite"></p>${(requestedSku&&!skuMatch)||(requestedVariant&&!exactVariant)?'<p class="small-note">Исполнение из ссылки не найдено. Проверьте артикул или выберите доступный вариант ниже.</p>':""}</div><p class="detail-disclaimer">Размеры указаны для базового варианта. Отделка и материал могут менять характеристики. Точные параметры для заказа — в документах изделия и у команды Salini.</p><a class="line-link" href="#/dealers?product=${encodeURIComponent(p.id)}">Посмотреть в салоне <span aria-hidden="true">↗︎</span></a><p class="small-note">Участие изделия в экспозиции и наличие для покупки уточняйте у салона.</p>${liveReferences?`<div class="downloads"><h2>Актуальные исполнения</h2>${liveReferences}</div>`:""}<div class="downloads"><h2>Для вашего проекта</h2>${p.downloads.map(d=>`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)} <span aria-hidden="true">↗︎</span></a>`).join("")}<a href="#/documents?product=${encodeURIComponent(p.id)}">Библиотека документов изделия <span aria-hidden="true">↗︎</span></a></div><p class="small-note">${p.sourceStatus==="current"?"Источник проверен":"Каталог по данным"} ${esc(sourceDate)}. <a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Страница на официальном сайте</a></p><button class="line-link contact-toggle">Помочь с выбором <span aria-hidden="true">↗︎</span></button></div></section>`;
   syncFavorites();
-  const variant = $("#product-variant");
+  const variant = $("#product-variant"), configurator=$('.variant-options');
+  configurator.classList.add('product-configurator');
+  variant.closest('label').classList.add('sr-only');
+  let ral=window.SaliniAtelier.colours.find(c=>c[0]===params.get('ral'))?.[0] || '';
+  let custom=Boolean(window.SaliniAtelier.allowsRAL(selected)&&(ral||(selected.customColourSku&&selectedSku===selected.customColourSku)));
+  if(!window.SaliniAtelier.allowsRAL(selected))ral='';
+  const quick=['1015','3012','3015','6021','6034','5014','7016'];
+  const swatches=[['','Базовый белый','#F1F0EA'],...quick.map(code=>window.SaliniAtelier.colours.find(c=>c[0]===code)),...window.SaliniAtelier.colours.filter(c=>!quick.includes(c[0]))];
+  configurator.insertAdjacentHTML('afterbegin',`<h2>Материал и цвет</h2><div class="variant-pills" role="group" aria-label="Исполнение изделия">${p.variants.map(v=>`<button type="button" class="variant-pill" data-variant-pick="${esc(v.id)}" data-finish="${esc(v.finish)}" aria-pressed="${v.id===variant.value}">${esc(v.title||v.sku||'Базовое исполнение')}</button>`).join('')}</div><div class="colour-heading"><strong>Цвет</strong><span id="product-colour-label"></span></div><div class="colour-orbs" role="group" aria-label="Цвет изделия">${swatches.map(([code,name,hex])=>`<button type="button" class="colour-orb" data-ral="${code}" title="${esc(code?'RAL '+code+' · '+name:name)}" aria-label="${esc(code?'RAL '+code+' · '+name:name)}" aria-pressed="false"><i style="--swatch:${hex}"></i></button>`).join('')}<button type="button" class="colour-orb" data-colour-inquiry title="Другой цвет RAL по запросу" aria-label="Другой цвет RAL по запросу" aria-pressed="false"><i style="--swatch:conic-gradient(#C6846D,#E6D2B5,#7AADAC,#637D96,#C6846D)"></i></button></div><button class="line-link palette-expand" type="button" id="product-palette-expand" aria-expanded="false">Вся палитра · 30 оттенков</button><p class="colour-note">Цвета на экране приблизительны. Выбранный RAL — запрос на окраску; оттенок, возможность исполнения и стоимость подтверждают по образцу. Фотография показывает исходное изделие.</p>`);
+  // Put the choice before specifications and actions, keeping every existing detail below.
+  $('.spec-list').insertAdjacentElement('beforebegin',configurator);
   const update = (writeURL=false) => {
     const v = p.variants.find(v=>v.id===variant.value);
-    if (writeURL) selectedSku=v?.sku || "";
+    if(!window.SaliniAtelier.allowsRAL(v)){custom=false;ral='';}
+    if(writeURL||custom)selectedSku=(custom?v?.customColourSku:v?.sku)||'';
+    $('#product-colour-label').textContent=custom?(ral?'RAL '+ral:'Цвет RAL по запросу'):'Базовый белый';
+    $$('.colour-orb[data-ral]',configurator).forEach(b=>{b.disabled=Boolean(b.dataset.ral&&!window.SaliniAtelier.allowsRAL(v));b.setAttribute('aria-pressed',String(b.dataset.ral===(custom?(ral||'custom'):'')));});
+    $$('[data-variant-pick]',configurator).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.variantPick===variant.value)));
     $("#variant-info").textContent=v?["Артикул: "+(selectedSku || "уточняется"),Number.isFinite(v.weightKg)&&v.weightKg>0?"Вес: "+v.weightKg+" кг":null].filter(Boolean).join(" · "):"Исполнение уточняется на официальном сайте";
     $("#product-sku").textContent=selectedSku || "См. спецификацию";
-    if(writeURL && v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);history.replaceState(history.state,"",routeURL(productUrl(p)+"?"+next)); }
+    if(writeURL && v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);if(ral)next.set('ral',ral);history.replaceState(history.state,"",routeURL(productUrl(p)+"?"+next)); }
   };
-  variant.addEventListener("change",()=>update(true)); update();
+  variant.addEventListener("change",()=>update(true));
+  $$('[data-variant-pick]',configurator).forEach(b=>b.addEventListener('click',()=>{variant.value=b.dataset.variantPick;update(true);}));
+  $$('.colour-orb[data-ral]',configurator).forEach(b=>b.addEventListener('click',()=>{custom=Boolean(b.dataset.ral);ral=b.dataset.ral==='custom'?'':b.dataset.ral;update(true);}));
+  $('[data-colour-inquiry]',configurator).addEventListener('click',contact);
+  const palette=$('.colour-orbs',configurator),expand=$('#product-palette-expand');
+  const expandPalette=open=>{palette.classList.toggle('is-expanded',open);expand.setAttribute('aria-expanded',String(open));expand.textContent=open?'Свернуть палитру':'Вся палитра · 30 оттенков';};
+  expand.addEventListener('click',()=>expandPalette(expand.getAttribute('aria-expanded')!=='true'));
+  if(ral&&!quick.includes(ral))expandPalette(true);
+  update();
+  const related=p.collection?data.products.filter(other=>other.id!==p.id&&other.collection===p.collection&&!other.isOption).slice(0,3):[];
+  if(related.length)main.insertAdjacentHTML('beforeend',`<section class="product-related wrap"><div class="section-heading"><div><span class="eyebrow">Коллекция ${esc(p.collection)}</span><h2>Продолжение вашей истории.</h2></div><a class="line-link" href="#/catalog?collection=${encodeURIComponent(p.collection)}">Вся коллекция ↗</a></div><div class="atelier-new-grid">${related.map(card).join('')}</div></section>`);
   $("#product-image-open")?.addEventListener("click",()=>openDialog(`<span class="eyebrow">Фото изделия</span><h2 id="dialog-title">${esc(p.name)}</h2><img src="${esc(image.src)}" alt="${esc(p.name)}" width="${image.width}" height="${image.height}" style="width:100%;height:auto;max-height:75vh;object-fit:contain;border-radius:var(--radius-card)">`,"product-image-dialog"));
   $$('[data-product-image]',main).forEach(button=>button.addEventListener("click",()=>{image=gallery[Number(button.dataset.productImage)];const img=$(".detail-photo > img");if(img){img.src=image.src;img.width=image.width;img.height=image.height;}$$('[data-product-image]',main).forEach(b=>b.setAttribute("aria-pressed",String(b===button)));}));
 }
@@ -440,16 +472,22 @@ function openApp({ productId, selectionIds } = {}) {
     notify("За один раз можно передать до 100 изделий");
     return;
   }
-  const hash = product ? productUrl(product) : ids.length ? selectionHash(ids) : "#/app";
-  const webUrl = publicUrl(hash);
+  const selectedParams = product && currentRoute().path === '/product/'+product.id ? currentRoute().params : new URLSearchParams();
+  const execution = product?.variants.find(v=>v.id===selectedParams.get('variant'));
+  const ral = window.SaliniAtelier.allowsRAL(execution) && window.SaliniAtelier.colours.find(c=>c[0]===selectedParams.get('ral'))?.[0];
+  const configuration = new URLSearchParams();
+  if(execution)configuration.set('variant',execution.id);
+  if(ral)configuration.set('ral',ral);
+  const hash = product ? productUrl(product)+(configuration.size?'?'+configuration:'') : ids.length ? selectionHash(ids) : "#/app";
+  const webUrl = publicUrl(hash)+(execution&&selectedParams.get('sku')===execution.customColourSku&&!ral?'&sku='+encodeURIComponent(execution.customColourSku):'');
   const appUrl = product
-    ? `salini://product/${encodeURIComponent(product.id)}?v=1`
+    ? `salini://product/${encodeURIComponent(product.id)}?${execution?'v=2&'+configuration:'v=1'}`
     : ids.length ? `salini://selection?v=1&ids=${encodeURIComponent(ids.join(","))}` : null;
   const mobile = isAppleMobile();
   const subject = product ? esc(product.name) : ids.length ? "Ваша подборка" : "Salini";
   const detail = ids.length
     ? "Эти изделия добавятся в избранное приложения. Материал и исполнение можно выбрать отдельно."
-    : product ? "Откройте это же изделие в приложении и продолжите выбор." : "Коллекции, материалы и ваши идеи — рядом на iPhone.";
+    : product ? (execution ? "Изделие и материал откроются в Salini 1.0 (16) или новее. Если выбран конкретный RAL, он тоже сохранится. Оттенок «по запросу» нужно выбрать в приложении. При необходимости сначала обновите Salini." : "Откройте это же изделие в приложении и продолжите выбор.") : "Коллекции, материалы и ваши идеи — рядом на iPhone.";
   openDialog(
     `<span class="eyebrow">Сайт и приложение вместе</span><h2 id="dialog-title">${subject}.<br><em>На iPhone.</em></h2><p>${detail}</p>
     ${mobile ? `<div class="app-handoff-actions">${appUrl ? `<a class="button button-dark" href="${appUrl}" data-launch-app>Открыть Salini <span aria-hidden="true">↗︎</span></a>` : ""}<a class="button ${appUrl ? "" : "button-dark"}" href="${TESTFLIGHT_URL}" target="_blank" rel="noopener">${appUrl ? "Установить или обновить" : "Установить через TestFlight"} <span aria-hidden="true">↗︎</span></a></div><p class="app-handoff-help" id="app-handoff-help" role="status">Если Salini ещё не установлен, откройте TestFlight. После установки вернитесь сюда${appUrl ? " и нажмите «Открыть Salini»" : ""}.</p>`
@@ -545,9 +583,10 @@ async function route({restoreScroll=false} = {}) {
   closeMenu();
   if (dialog.open) closeDialog();
   window.SaliniHome?.dispose();
+  window.SaliniAtelier.dispose();
   main.setAttribute('aria-busy','true');
   try {
-    const needsCatalog = ['/catalog','/favorites','/selection','/documents'].includes(path) || path.startsWith('/product/') || (path === '/dealers' && params.has('product'));
+    const needsCatalog = ['/','/new','/catalog','/favorites','/selection','/documents'].includes(path) || path.startsWith('/product/') || (path === '/dealers' && params.has('product'));
     if (needsCatalog) await ensureCatalog();
     if (window.SaliniSupport.handles(path)) await window.SaliniSupport.load();
     if (window.SaliniEditorial.handles(path)) await window.SaliniEditorial.load();
@@ -570,6 +609,8 @@ async function route({restoreScroll=false} = {}) {
     else if (window.SaliniSupport.handles(path)) main.innerHTML = window.SaliniSupport.render(path,params,{products:data.products});
     else if (window.SaliniResources.handles(path)) main.innerHTML = window.SaliniResources.render(path,params,{products:data.products});
     else renderNotFound();
+
+    if(['/collection/ninfea','/collection/opera','/collection/greca'].includes(path))main.insertAdjacentHTML('beforeend',window.SaliniAtelier.cinema(path.split('/').pop()));
     main.dataset.renderedPath = path;
     document.title = path === '/' ? 'Salini — L’anima dell’acqua' : (($('h1',main)?.innerText.replace(/\s+/g,' ') || 'Salini') + ' — Salini');
     const canonical = new URL(path === '/' ? '' : path.slice(1) + '/',PUBLIC_SITE_URL).href;
@@ -583,9 +624,11 @@ async function route({restoreScroll=false} = {}) {
       else a.removeAttribute('aria-current');
     });
     syncFavorites();
+    window.SaliniAtelier.mountCinema(main);
     main.focus({preventScroll:true});
     if (!restorePosition) {
       window.scrollTo({top:0,left:0,behavior:'instant'});
+      if(path.startsWith('/product/')&&params.get('choose')==='colour')$('.product-configurator')?.scrollIntoView({block:'start'});
       if (path === '/materials' && ['stone','sense','shine'].includes(params.get('material'))) $$('.editorial-row',main)[['stone','sense','shine'].indexOf(params.get('material'))]?.scrollIntoView({block:'start'});
     }
     if (window.SaliniEditorial.handles(path)) window.SaliniEditorial.mount(main,path,params,{products:data.products});
