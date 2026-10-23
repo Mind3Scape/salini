@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /salini/
+
+Sitemap: https://mind3scape.github.io/salini/sitemap.xml
