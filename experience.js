@@ -3,7 +3,7 @@ window.SaliniExperience = (() => {
   const modelIDs = new Set(['1078','1120','1139','1151','1167','1170','1361','1364','1382','1452','1456','1773','1775']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let cleanup = [], library;
-  const filmVersion = 'bed71e974e05';
+  const filmVersion = '3f6c0b8be01c';
   const hasModel = p => modelIDs.has(String(p.id));
   function picture(name,alt,cls='') {
     return `<picture class="${cls}"><source media="(max-width:700px)" srcset="assets/${name}-mobile.webp"><img src="assets/${name}.webp" alt="${esc(alt)}" width="1672" height="941" decoding="async"></picture>`;
