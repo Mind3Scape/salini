@@ -21,3 +21,90 @@
 .water-experience{overflow-x:clip}
 
 .arrival-word>img{width:clamp(200px,28vw,360px);height:auto;filter:brightness(0) invert(.96);display:block}.arrival-word{font-size:0}
+
+/* One continuous stage: native scroll moves the camera through the whole story. */
+body:has(.water-journey) .topline{display:none}
+body:has(.water-journey) .header{position:absolute;top:0;left:0;width:100%;background:transparent;border:0;color:#f4f0e7;z-index:30}
+body:has(.water-journey) .header .brand img{filter:brightness(0) invert(.95)}
+body:has(.water-journey) .header .desktop-nav a,body:has(.water-journey) .header-actions{color:inherit}
+.water-journey{position:relative;height:850svh;min-height:5400px;background:#173c32;color:#f4f0e7}
+.water-fill-stage{position:sticky;top:0;height:100svh;min-height:620px;max-height:none;isolation:isolate;overflow:hidden;background:#173c32;--water-progress:0;--opening:1}
+.water-fill-visual{position:absolute;inset:0;opacity:0;transition:opacity 1s;pointer-events:none}
+.water-fill-visual canvas{width:100%;height:100%;display:block;touch-action:pan-y}
+.is-water-ready .water-fill-visual{opacity:1}
+.journey-atmosphere{position:absolute;inset:0;opacity:var(--opening);pointer-events:none;transform:scale(calc(1 + var(--water-progress)*.5));transform-origin:68% 40%}
+.journey-atmosphere .experience-scene{z-index:auto}
+.journey-atmosphere img{width:100%;height:100%;object-fit:cover;object-position:65% 50%}
+.journey-shade{position:absolute;inset:0;background:linear-gradient(90deg,#0b241dc7,transparent 62%),linear-gradient(0deg,#0b241d99,transparent 20%);pointer-events:none;opacity:calc(.45 + var(--opening)*.55)}
+.journey-captions{position:absolute;inset:0;pointer-events:none}
+.journey-copy{position:absolute;left:7vw;top:29%;max-width:400px;opacity:0;transform:translateY(20px);transition:opacity .65s,transform .9s;visibility:hidden}
+.journey-copy.is-current{opacity:1;transform:none;visibility:visible;pointer-events:auto}
+.journey-copy:first-child{top:19%}
+.journey-copy .eyebrow{font-size:9px;color:#e2e8d9;letter-spacing:.16em}
+.journey-copy h1{font:clamp(82px,9.5vw,156px)/.83 var(--serif);letter-spacing:-.055em;margin:28px 0}
+.journey-copy h1 em{display:inline-block;margin-left:4vw;font-weight:400}
+.journey-copy h2{font:clamp(54px,6.8vw,108px)/.91 var(--serif);letter-spacing:-.045em;margin:25px 0;color:#f5f1e8}
+.journey-copy h2 em{color:inherit;font-weight:400}
+.journey-copy p{font-size:12px;line-height:1.85;color:#f4f0e7dd;margin:22px 0}
+.journey-copy>a{display:inline-flex;padding:14px 0;font-size:11px;border-bottom:1px solid #ffffff55}
+.journey-start{display:flex;align-items:center;gap:22px;padding:0;margin-top:25px;min-height:48px;font-size:11px;color:#f4f0e7}
+.journey-start span{border:1px solid #f4f0e760;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:20px}
+.journey-bottom{position:absolute;bottom:25px;left:7vw;right:7vw;color:#f4f0e7;z-index:4}
+.journey-route{display:flex;align-items:center;gap:16px;max-width:500px;font-size:10px}
+.journey-route button{min-height:44px;padding:6px 0;color:inherit;white-space:nowrap;opacity:.55;transition:opacity .3s}
+.journey-route button[aria-pressed=true]{opacity:1}
+.journey-route i{height:1px;background:#ffffff30;flex:1;min-width:20px}
+.journey-navigation{display:flex;align-items:center;gap:20px;font-size:10px;border-top:1px solid #ffffff30;margin-top:4px;padding-top:9px}
+.journey-navigation button,.journey-navigation a{min-height:44px;display:flex;align-items:center;padding:8px 0;color:inherit}
+.journey-scroll-hint{font-size:8px;letter-spacing:.15em;margin-right:auto;opacity:.72}
+.journey-scrubber{position:absolute;bottom:53px;left:0;right:0;opacity:0;pointer-events:none;font-size:10px}
+.journey-scrubber:focus-within{opacity:1;pointer-events:auto;background:#123c31;padding:15px 20px;border-radius:24px;display:flex;gap:16px;align-items:center}
+.journey-scrubber input{accent-color:#cad5c3;width:100%}
+.water-fill-poster{position:absolute;left:7vw;bottom:190px;z-index:6}
+.water-fill-poster button{color:#f4f0e7;border:1px solid #f4f0e760;background:#123c3180;backdrop-filter:blur(12px)}
+.is-water-ready .water-fill-poster{display:none}
+.water-fill-status{position:absolute;bottom:180px;left:7vw;font-size:11px;max-width:320px;color:#f4f0e7;z-index:7}
+.is-water-loading .water-fill-status:empty:after{content:'Собираем свет и отражения…'}
+.journey-afterword{display:grid;grid-template-columns:1fr 1fr;gap:28px;padding-top:65px;padding-bottom:30px}
+.journey-afterword>a{position:relative;isolation:isolate;aspect-ratio:1.3;overflow:hidden;border-radius:32px;background:#173c32;color:#f4f0e7}
+.journey-afterword picture{position:absolute;inset:0;z-index:-2}.journey-afterword img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s}
+.journey-afterword a:after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#09271ae6,transparent 80%)}
+.journey-afterword a:hover img{transform:scale(1.04)}
+.journey-afterword a>span{position:absolute;left:35px;bottom:30px;font:clamp(32px,4vw,60px)/.96 var(--serif);letter-spacing:-.03em}
+.journey-afterword small{display:block;font:10px var(--sans);letter-spacing:0;margin-top:22px}
+.water-journey:not(.is-water-enabled),.water-journey.is-water-fallback{height:auto;min-height:0}
+.water-journey:not(.is-water-enabled) .water-fill-stage,.water-journey.is-water-fallback .water-fill-stage{position:relative;min-height:760px}
+.water-journey:not(.is-water-enabled) .journey-route,.water-journey.is-water-fallback .journey-route,.water-journey:not(.is-water-enabled) .journey-scroll-hint,.water-journey.is-water-fallback .journey-scroll-hint{display:none}
+.is-water-fallback .water-fill-poster{display:none}
+.is-water-static .journey-copy{transition:none}
+@media(min-width:1600px){.journey-copy{max-width:480px}.journey-copy p{font-size:14px}}
+@media(max-width:700px){
+  .water-journey{height:780svh;min-height:4700px}
+  .water-fill-stage{height:100svh;min-height:610px}
+  .journey-copy,.journey-copy:first-child{top:16%;left:7vw;right:7vw;max-width:none}
+  .journey-copy h1{font-size:clamp(72px,21vw,112px);line-height:.83;margin:25px 0}
+  .journey-copy h2{font-size:clamp(48px,14vw,76px);margin:20px 0}
+  .journey-copy h2 br{display:initial}
+  .journey-copy .eyebrow{font-size:7px;letter-spacing:.12em}
+  .journey-copy p{font-size:11px;margin:18px 0}
+  .journey-copy:not(:first-child){top:14%;max-width:85%}
+  .journey-copy:not(:first-child) p{max-width:230px}
+  .journey-start{font-size:10px;margin-top:22px;gap:16px}
+  .journey-start span{width:40px;height:40px}
+  .journey-shade{background:linear-gradient(180deg,#0b241d55,transparent 60%,#0b241d88)}
+  .journey-bottom{bottom:max(14px,env(safe-area-inset-bottom));left:7vw;right:7vw}
+  .journey-route{gap:10px;font-size:9px}.journey-route i{min-width:8px}
+  .journey-navigation{font-size:9px;gap:17px;padding-top:5px}
+  .journey-scroll-hint{font-size:6px;letter-spacing:.1em;max-width:130px;line-height:1.7}
+  .journey-atmosphere img{object-position:64% center}
+  .water-fill-poster{bottom:160px}.water-fill-status{bottom:150px;font-size:10px;right:7vw}
+  .journey-afterword{grid-template-columns:1fr;gap:18px;padding-top:35px}
+  .journey-afterword a>span{font-size:43px;left:27px;bottom:27px}
+  .journey-afterword>a{border-radius:26px}
+}
+@media(prefers-reduced-motion:reduce){.journey-copy,.journey-atmosphere,.water-fill-visual{transition:none;transform:none}.journey-afterword a:hover img{transform:none}}
+@media(min-width:701px) and (max-width:1100px){.journey-copy{max-width:260px}.journey-copy h2{font-size:61px}.journey-copy h1{font-size:90px}.journey-shade{background:linear-gradient(90deg,#09251ec4,transparent 40%),linear-gradient(0deg,#09251e88,transparent 20%)}}
+.journey-touch{font-size:11px;min-height:44px;color:#f4f0e7;padding:0;display:flex;gap:15px;align-items:center;border-bottom:1px solid #ffffff45}.journey-touch span{font-size:23px}
+.water-journey:not(.is-water-enabled).is-water-ready .journey-scrubber{opacity:1;pointer-events:auto;bottom:60px;display:flex;align-items:center;gap:15px}
+.is-water-fallback [data-water-pause],.is-water-fallback .journey-scrubber,.water-journey:not(.is-water-ready) [data-water-pause],.water-journey:not(.is-water-ready) .journey-scrubber{display:none}
+@media(prefers-reduced-motion:reduce){.water-journey{height:auto;min-height:0}.water-fill-stage{position:relative;top:0}.journey-scroll-hint{display:none}}

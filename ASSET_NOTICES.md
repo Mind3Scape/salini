@@ -35,6 +35,10 @@ Figma — референс структуры и художественного 
 
 `assets/story-water*.webp` and `assets/story-mineral*.webp` are original artistic images generated with the built-in imagegen tool for this website. They illustrate imagined spaces and materials; they are not photographs of Salini products, facilities or completed interiors. Original PNGs and exact prompts are recorded in the private source project (`research/water-form-2026-10-23/assets.json`). WebP derivatives resize and compress the originals.
 
+The scroll-driven Luce water scene reuses the unchanged Salini model. Water, ripples, droplets and caustic highlights are procedural 3D effects; the animation is an artistic timeline, not a fluid-engineering simulation. The inner water contours are measured from the supplied model. Three.js 0.186.1 is bundled locally under the MIT license (`licenses/THREE-LICENSE.txt`).
+
+`assets/water-studio-512.hdr` is a 512 × 256 derivative of the studio light already bundled with the iOS app: **Studio Small 09**, Sergej Majboroda / Poly Haven, [source](https://polyhaven.com/a/studio_small_09), [CC0](https://polyhaven.com/license). Only resolution is reduced for mobile delivery. Source and derivative hashes are recorded in the source project's `research/water-form-2026-10-23/water-light.json`.
+
 `assets/model-*.glb` reuse the 13 exact Salini USDZ models bundled with the companion iOS application. Geometry is uniformly scaled to catalogue length, centred, and exported with recomputed normals and browser materials. No product parts are invented. The original attribution and product document rights remain with Salini; this is not an independent licence for reuse. Source and output hashes are retained in the source project. The chrome/body material mapping matches the native viewer. Screen colours and roughness are illustrative approximations.
 
 `assets/model-viewer-4.4.0.min.js` is the locally pinned Google model-viewer 4.4.0 distribution from the npm registry, licensed under Apache-2.0. See `licenses/MODEL-VIEWER-LICENSE.txt`.
