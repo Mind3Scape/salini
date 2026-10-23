@@ -22,7 +22,7 @@
 
 .arrival-word>img{width:clamp(200px,28vw,360px);height:auto;filter:brightness(0) invert(.96);display:block}.arrival-word{font-size:0}
 
-/* A living pavilion. Native scroll grants entry; films keep their own time. */
+/* A living pavilion. Native scroll controls the passage; ambient water loops at both ends. */
 body:has(.water-journey) .topline{display:none}
 body:has(.water-journey) .header{position:absolute;top:0;left:0;width:100%;background:transparent;backdrop-filter:none;border:0;color:#f4f0e7;z-index:30}
 body:has(.water-journey) .header .brand img{filter:brightness(0) invert(.95)}
@@ -56,7 +56,7 @@ body:has(.water-journey) .header .desktop-nav a,body:has(.water-journey) .header
 .journey-route button span{font-size:8px;letter-spacing:.1em;opacity:.8}.journey-route button[aria-pressed=true]{opacity:1}
 .journey-route i{height:1px;background:#ffffff30;min-width:20px;flex:1}
 .journey-track{height:1px;background:#ffffff25;margin:5px 0 8px;overflow:hidden}
-.journey-track i{display:block;width:100%;height:100%;transform:scaleX(var(--film-progress));transform-origin:left;background:#f4f0e7a8;transition:transform .3s linear}
+.journey-track i{display:block;width:100%;height:100%;transform:scaleX(var(--film-progress));transform-origin:left;background:#f4f0e7a8}
 .journey-navigation{display:flex;align-items:center;gap:22px;font-size:10px}
 .journey-navigation button,.journey-navigation a{min-height:44px;display:flex;align-items:center;color:inherit;padding:8px 0}
 .journey-scroll-hint{font-size:7px;letter-spacing:.14em;margin-right:auto;opacity:.75}
@@ -94,4 +94,4 @@ body:has(.water-journey) .header .desktop-nav a,body:has(.water-journey) .header
 }
 @media(max-height:600px) and (min-width:701px){.water-fill-stage{min-height:100svh}.journey-copy:first-child{top:22%}.journey-copy h1{font-size:68px;margin:18px 0}.journey-copy p{display:none}.journey-copy h2{font-size:56px}.journey-edition{display:none}.journey-bottom{bottom:10px}}
 @media(max-aspect-ratio:4/5){.journey-screen img,.journey-film{object-position:100% 70%}}
-@media(prefers-reduced-motion:reduce){.water-journey{height:100svh;min-height:560px}.water-fill-stage{position:relative}.journey-copy,.journey-track i{transition:none}.journey-afterword a:hover img{transform:none}.journey-loading i{animation:none}}
+@media(prefers-reduced-motion:reduce){.water-journey:not(.is-film-enabled){height:100svh;min-height:560px}.water-journey:not(.is-film-enabled) .water-fill-stage{position:relative}.journey-copy,.journey-track i{transition:none}.journey-afterword a:hover img{transform:none}.journey-loading i{animation:none}}

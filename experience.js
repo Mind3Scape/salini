@@ -3,7 +3,7 @@ window.SaliniExperience = (() => {
   const modelIDs = new Set(['1078','1120','1139','1151','1167','1170','1361','1364','1382','1452','1456','1773','1775']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let cleanup = [], library;
-  const filmVersion = '3f6c0b8be01c';
+  const filmVersion = '0190cf9b224b';
   const hasModel = p => modelIDs.has(String(p.id));
   function picture(name,alt,cls='') {
     return `<picture class="${cls}"><source media="(max-width:700px)" srcset="assets/${name}-mobile.webp"><img src="assets/${name}.webp" alt="${esc(alt)}" width="1672" height="941" decoding="async"></picture>`;
@@ -26,7 +26,7 @@ window.SaliniExperience = (() => {
         <div data-film-copy="passage" class="journey-copy journey-passage" aria-hidden="true" inert><span class="eyebrow">02 / ВНУТРИ ПРОСТРАНСТВА</span><h2>Внутри<br><em>тишины.</em></h2></div>
         <div data-film-copy="sanctuary" class="journey-copy journey-last" aria-hidden="true" inert><span class="eyebrow">03 / LUCE</span><h2>Течение<br>становится<br><em>тишиной.</em></h2><p>Форма вашего<br>личного пространства.</p><button class="journey-start" data-chapter="form">Рассмотреть точную форму <span aria-hidden="true">↗</span></button></div>
       </div>
-      <div class="journey-bottom"><div class="journey-route" role="group" aria-label="Сцены путешествия"><button data-film-chapter="threshold" aria-pressed="true"><span>01</span> Порог</button><i></i><button data-film-chapter="travel" aria-pressed="false"><span>02</span> Проход</button><i></i><button data-film-chapter="sanctuary" aria-pressed="false"><span>03</span> Luce</button></div><div class="journey-track" aria-hidden="true"><i></i></div><div class="journey-navigation"><span class="journey-scroll-hint">ПРОДОЛЖАЙТЕ СКРОЛЛ — ПРОСТРАНСТВО ОТКРОЕТСЯ</span><button data-film-pause aria-pressed="false" hidden>Пауза</button><button data-film-replay>Смотреть сначала</button><a href="experience/#form" data-chapter="form">К коллекции ↗</a></div></div>
+      <div class="journey-bottom"><div class="journey-route" role="group" aria-label="Сцены путешествия"><button data-film-chapter="threshold" aria-pressed="true"><span>01</span> Порог</button><i></i><button data-film-chapter="travel" aria-pressed="false"><span>02</span> Проход</button><i></i><button data-film-chapter="sanctuary" aria-pressed="false"><span>03</span> Luce</button></div><div class="journey-track" aria-hidden="true"><i></i></div><div class="journey-navigation"><span class="journey-scroll-hint">ПРОКРУЧИВАЙТЕ — ВЫ УПРАВЛЯЕТЕ ДВИЖЕНИЕМ</span><button data-film-pause aria-pressed="false" hidden>Пауза</button><button data-film-replay>К началу</button><a href="experience/#form" data-chapter="form">К коллекции ↗</a></div></div>
       <div class="journey-loading" role="status"><i aria-hidden="true"></i><span>Открываем пространство</span></div>
       <div class="journey-error"><p data-water-status role="status"></p><button data-film-retry>Смотреть ↗</button></div>
       <noscript><style>.water-journey{height:100svh}.water-fill-stage{position:relative}.journey-start,.journey-route,.journey-navigation button{display:none}</style><p class="journey-no-script">Статичные сцены и коллекция доступны ниже.</p></noscript>
