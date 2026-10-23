@@ -85,7 +85,7 @@
   }
   function replaceParams(path, params) {
     const url=new URL(href(path,Object.fromEntries(params)),baseURL);
-    history.replaceState(null,"",url.pathname+url.search+url.hash);
+    history.replaceState(history.state,"",url.pathname+url.search+url.hash);
   }
   function mount(main,path,params,context={}) {
     params=new URLSearchParams(paramsOf(params));

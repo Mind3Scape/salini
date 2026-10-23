@@ -274,7 +274,7 @@ function renderCatalog(params = new URLSearchParams()) {
     const next=new URLSearchParams();
     if(sourceScope)next.set("source",sourceScope);
     if(selectedCategory!=="all")next.set("category",selectedCategory);if(c)next.set("collection",c);if(q)next.set("q",q);if(material)next.set("material",material);if(type)next.set("subcategory",type);if(sort!=="curated")next.set("sort",sort);if(includeOptions)next.set("options","1");if(from!==null)next.set("lengthFrom",String(from));if(to!==null)next.set("lengthTo",String(to));
-    const rememberURL=()=>{if(shown>36)next.set("shown",String(shown));else next.delete("shown");history.replaceState(null,"",routeURL(`/catalog${next.size?"?"+next:""}`));};
+    const rememberURL=()=>{if(shown>36)next.set("shown",String(shown));else next.delete("shown");history.replaceState(history.state,"",routeURL(`/catalog${next.size?"?"+next:""}`));};
     const paint=()=>{
       grid.innerHTML=products.length?products.slice(0,shown).map(p=>{
         const matched=matches(p,q,"variant");
@@ -331,7 +331,7 @@ function renderProduct(id, params = new URLSearchParams()) {
     if (writeURL) selectedSku=v?.sku || "";
     $("#variant-info").textContent=v?["Артикул: "+(selectedSku || "уточняется"),Number.isFinite(v.weightKg)&&v.weightKg>0?"Вес: "+v.weightKg+" кг":null].filter(Boolean).join(" · "):"Исполнение уточняется на официальном сайте";
     $("#product-sku").textContent=selectedSku || "См. спецификацию";
-    if(writeURL && v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);history.replaceState(null,"",routeURL(productUrl(p)+"?"+next)); }
+    if(writeURL && v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);history.replaceState(history.state,"",routeURL(productUrl(p)+"?"+next)); }
   };
   variant.addEventListener("change",()=>update(true)); update();
   $("#product-image-open")?.addEventListener("click",()=>openDialog(`<span class="eyebrow">Фото изделия</span><h2 id="dialog-title">${esc(p.name)}</h2><img src="${esc(image.src)}" alt="${esc(p.name)}" width="${image.width}" height="${image.height}" style="width:100%;height:auto;max-height:75vh;object-fit:contain;border-radius:var(--radius-card)">`,"product-image-dialog"));
@@ -503,7 +503,43 @@ async function ensureCatalog() {
 function decorateLinks(root = main) {
   $$('a[href^="#/"]',root).forEach(a => {a.href = routeURL(a.getAttribute('href'));});
 }
-async function route() {
+// Scroll belongs to a history entry: two visits to the same URL can have different positions.
+const scrollPositions = new Map();
+let activeScrollKey, routeInProgress = false, renderedHref = '';
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+function newScrollEntry() {
+  return {key:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)};
+}
+function ensureScrollEntry() {
+  let entry = history.state?.saliniScroll;
+  if (!entry || typeof entry.key !== 'string') {
+    entry = newScrollEntry();
+    history.replaceState({...history.state,saliniScroll:entry},'');
+  }
+  return entry;
+}
+function snapshotScroll() {
+  if (!activeScrollKey) return;
+  const position = {key:activeScrollKey,x:window.scrollX,y:window.scrollY};
+  scrollPositions.set(activeScrollKey,position);
+  return position;
+}
+function rememberScroll() {
+  if (routeInProgress) return;
+  const position = snapshotScroll();
+  if (position) history.replaceState({...history.state,saliniScroll:position},'');
+}
+function navigate(url) {
+  rememberScroll();
+  history.pushState({saliniScroll:newScrollEntry()},'',url);
+  route();
+}
+async function route({restoreScroll=false} = {}) {
+  const entry = ensureScrollEntry();
+  const savedPosition = scrollPositions.get(entry.key) || entry;
+  // A new entry has no position yet: query links must reach their own section.
+  const restorePosition = restoreScroll && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y) ? savedPosition : null;
+  activeScrollKey=entry.key;routeInProgress=true;renderedHref=location.href;
   const serial = ++routeSerial, {path,params} = currentRoute();
   const initialStatic = main.dataset.renderedPath === undefined && document.documentElement.dataset.route === path;
   closeMenu();
@@ -547,19 +583,28 @@ async function route() {
       else a.removeAttribute('aria-current');
     });
     syncFavorites();
-    window.scrollTo({top:0,behavior:'instant'});
     main.focus({preventScroll:true});
-    if (path === '/materials' && ['stone','sense','shine'].includes(params.get('material'))) $$('.editorial-row',main)[['stone','sense','shine'].indexOf(params.get('material'))]?.scrollIntoView({block:'start'});
+    if (!restorePosition) {
+      window.scrollTo({top:0,left:0,behavior:'instant'});
+      if (path === '/materials' && ['stone','sense','shine'].includes(params.get('material'))) $$('.editorial-row',main)[['stone','sense','shine'].indexOf(params.get('material'))]?.scrollIntoView({block:'start'});
+    }
     if (window.SaliniEditorial.handles(path)) window.SaliniEditorial.mount(main,path,params,{products:data.products});
     if (window.SaliniSupport.handles(path)) window.SaliniSupport.mount(main,path,params,{products:data.products});
     if (window.SaliniResources.handles(path)) window.SaliniResources.mount(main,path,params,{products:data.products});
+    if (restorePosition) {
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if (serial !== routeSerial) return;
+      window.scrollTo({left:Number(restorePosition.x)||0,top:Number(restorePosition.y)||0,behavior:'instant'});
+    }
   } catch (error) {
     if (serial !== routeSerial) return;
     if (initialStatic) notify('Интерактивные функции временно недоступны. Содержание страницы сохранено.');
     else main.innerHTML = pageHeading('Не удалось загрузить раздел','Проверьте соединение и попробуйте ещё раз.') + '<div class="wrap section"><button class="button button-dark" data-retry-route>Повторить загрузку</button><a class="line-link" href="' + routeURL('/') + '">На главную ↗︎</a></div>';
     console.error('Salini route:',error);
   } finally {
-    if (serial === routeSerial) main.removeAttribute('aria-busy');
+    if (serial === routeSerial) {
+      main.removeAttribute('aria-busy');routeInProgress=false;rememberScroll();
+    }
   }
 }
 document.addEventListener("click", (e) => {
@@ -624,8 +669,7 @@ document.addEventListener("click", (e) => {
     const url = raw.startsWith('#/') ? routeURL(raw) : new URL(b.href);
     if ((raw.startsWith('#/') || !url.hash) && url.origin === siteBase.origin && url.pathname.startsWith(siteBase.pathname) && !/\.[a-z0-9]+$/i.test(url.pathname)) {
       e.preventDefault();
-      history.pushState(null,'',url);
-      route();
+      navigate(url);
     }
   }
 });
@@ -671,11 +715,25 @@ dialog.addEventListener("close", () => {
   const video = $("video", dialog);
   if (video) video.pause();
 });
-window.addEventListener("hashchange", () => {if (location.hash.startsWith('#/')) route();});
-window.addEventListener('popstate', route);
+window.addEventListener('scroll',()=>{
+  if (routeInProgress) return;
+  snapshotScroll();
+},{passive:true});
+window.addEventListener('pagehide',rememberScroll);
+window.addEventListener('hashchange',()=>{
+  // A history traversal also emits hashchange; its popstate render already restores the entry.
+  if (location.hash.startsWith('#/') && location.href !== renderedHref) {
+    history.replaceState({...history.state,saliniScroll:newScrollEntry()},'');
+    route();
+  }
+});
+window.addEventListener('popstate',()=>{
+  if (!routeInProgress) snapshotScroll();
+  route({restoreScroll:true});
+});
 window.addEventListener('resize', () => {
   if (!$('#mobile-menu').hidden) $('#mobile-menu').style.top = $('.header').getBoundingClientRect().bottom + 'px';
 });
 decorateLinks(document);
 syncFavorites();
-route();
+route({restoreScroll:true});
