@@ -4,7 +4,7 @@
 
 Источники: https://salini-srl.com/, страницы каталога и коллекций, официальный CDN `cdn-salini.storage.yandexcloud.net`. Точные URL каждого товара и фотографии содержатся в `catalog.json`; редакционных изображений — в исходной документации проекта. Дата полного снимка: 06.10.2026. Главная, карточка Paola 172, категории и сервисные переходы дополнительно проверены 22.10.2026.
 
-Фотография главной Paola — официальный файл `JPEG_3840 s polyami .jpg`, официального сайта Salini. Для телефона используется адаптивный кроп того же изображения. Фотографии карточек показываются целиком. Два изделия без изображения имеют явное состояние отсутствующей фотографии. Генеративные видео в веб-релиз не входят.
+Фотография главной Paola — официальный файл `JPEG_3840 s polyami .jpg`, официального сайта Salini. Для телефона используется адаптивный кроп того же изображения. Фотографии карточек показываются целиком. Два изделия без изображения имеют явное состояние отсутствующей фотографии. Происхождение художественных водных фильмов указано ниже.
 
 Manrope и Cormorant Garamond распространяются по SIL Open Font License 1.1; тексты лицензий находятся в `licenses/MANROPE-OFL.txt` и `licenses/CORMORANT-OFL.txt`. Шрифты загружаются локально. SF Symbols и шрифты Apple в веб-ассеты не копировались. На iOS используются настоящие системные компоненты и системный serif.
 
@@ -29,3 +29,12 @@ Figma — референс структуры и художественного 
 ## Collection cinema — 23.10.2026
 
 `assets/cinema-{ninfea,aria,opera,greca}.mp4` and matching WebP posters reuse the owner-approved generated films in the Salini iOS app, at the owner's explicit request. Ninfea v4; Aria, Opera, Greca v2. Web copies are H.264 640px derivatives without audio; source files remain unchanged. These are artistic collection stories, never product documentation or real showroom footage. Source hashes and conversion settings are retained in the private source manifest.
+
+
+## Water and form — 23.10.2026
+
+`assets/story-water*.webp` and `assets/story-mineral*.webp` are original artistic images generated with the built-in imagegen tool for this website. They illustrate imagined spaces and materials; they are not photographs of Salini products, facilities or completed interiors. Original PNGs and exact prompts are recorded in the private source project (`research/water-form-2026-10-23/assets.json`). WebP derivatives resize and compress the originals.
+
+`assets/model-*.glb` reuse the 13 exact Salini USDZ models bundled with the companion iOS application. Geometry is uniformly scaled to catalogue length, centred, and exported with recomputed normals and browser materials. No product parts are invented. The original attribution and product document rights remain with Salini; this is not an independent licence for reuse. Source and output hashes are retained in the source project. The chrome/body material mapping matches the native viewer. Screen colours and roughness are illustrative approximations.
+
+`assets/model-viewer-4.4.0.min.js` is the locally pinned Google model-viewer 4.4.0 distribution from the npm registry, licensed under Apache-2.0. See `licenses/MODEL-VIEWER-LICENSE.txt`.

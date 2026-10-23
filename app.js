@@ -35,6 +35,22 @@ try {
   if (Array.isArray(saved))
     favoriteIds = new Set(saved.filter((x) => typeof x === "string"));
 } catch {}
+let favoriteConfigurations = {};
+try { const saved=JSON.parse(localStorage.getItem('salini-selection-configs-v1')||'{}'); if(saved&&typeof saved==='object'&&!Array.isArray(saved))favoriteConfigurations=saved; }catch{}
+function validConfiguration(p,value) {
+  if(!p||!value||typeof value!=='object')return null;
+  const variant=p.variants.find(v=>v.id===value.variant);if(!variant)return null;
+  const ral=window.SaliniAtelier.allowsRAL(variant)&&window.SaliniAtelier.colours.some(c=>c[0]===value.ral)?value.ral:'';
+  return {variant:variant.id,ral};
+}
+function saveConfiguration(p,value) {
+  if(!favoriteIds.has(p.id))return;
+  const valid=validConfiguration(p,value);if(!valid)return;
+  favoriteConfigurations[p.id]=valid;
+  try {localStorage.setItem('salini-selection-configs-v1',JSON.stringify(favoriteConfigurations));}catch{}
+}
+function savedConfiguration(p){return favoriteIds.has(p.id)?validConfiguration(p,favoriteConfigurations[p.id]):null;}
+function configurationURL(p,value){const valid=validConfiguration(p,value);if(!valid)return productUrl(p);const params=new URLSearchParams({variant:valid.variant});if(valid.ral)params.set('ral',valid.ral);return productUrl(p)+'?'+params;}
 const PUBLIC_SITE_URL = "https://mind3scape.github.io/salini/";
 const TESTFLIGHT_URL = "https://testflight.apple.com/join/mUb5H7bZ";
 const isAppleMobile = () =>
@@ -100,6 +116,9 @@ function toggleFavorite(id) {
   if (!data.products.some((p) => p.id === id)) return;
   const remove = favoriteIds.has(id);
   remove ? favoriteIds.delete(id) : favoriteIds.add(id);
+  const product=data.products.find(p=>p.id===id);
+  if(remove){delete favoriteConfigurations[id];try{localStorage.setItem('salini-selection-configs-v1',JSON.stringify(favoriteConfigurations));}catch{}}
+  else if(currentRoute().path==='/product/'+id){const params=currentRoute().params;saveConfiguration(product,{variant:$('#product-variant')?.value,ral:params.get('ral')});}
   try {
     localStorage.setItem("salini-selection", JSON.stringify([...favoriteIds]));
     notify(
@@ -190,7 +209,9 @@ function productImage(p) {
     : '<div class="no-photo"><span>salini</span><small>Фотография уточняется</small></div>';
 }
 function card(p) {
-  return `<article class="product-card">${window.SaliniAtelier.isNew(p)?'<span class="product-new">Новинка</span>':''}<button class="save-product" data-save="${esc(p.id)}" aria-label="Добавить в подборку" aria-pressed="false">${heartIcon}</button><a class="product-card-link" href="${productUrl(p)}"><div class="image-wrap">${productImage(p)}</div><div class="product-category">${esc(p.subtitle)}</div><h2>${esc(p.name)}</h2><p>${esc(p.dimensionsLabel)}</p></a>${window.SaliniAtelier.cardDetails(p)}</article>`;
+  const saved=currentRoute().path==='/favorites'?savedConfiguration(p):null;
+  const label=saved?`<p class="saved-finish"><i style="--swatch:${window.SaliniAtelier.colours.find(c=>c[0]===saved.ral)?.[2]||'#F1F0EA'}"></i>${esc(p.variants.find(v=>v.id===saved.variant)?.title)} · ${saved.ral?'RAL '+saved.ral:'Белый'}</p>`:'';
+  return `<article class="product-card">${window.SaliniAtelier.isNew(p)?'<span class="product-new">Новинка</span>':window.SaliniExperience.hasModel(p)?'<span class="model-badge">3D · 360°</span>':''}<button class="save-product" data-save="${esc(p.id)}" aria-label="Добавить в подборку" aria-pressed="false">${heartIcon}</button><a class="product-card-link" href="${saved?esc(configurationURL(p,saved)):productUrl(p)}"><div class="image-wrap">${productImage(p)}</div><div class="product-category">${esc(p.subtitle)}</div><h2>${esc(p.name)}</h2><p>${esc(p.dimensionsLabel)}</p></a>${label}${window.SaliniAtelier.cardDetails(p)}</article>`;
 }
 function renderHome() {
   main.innerHTML = $("#home-template").innerHTML;
@@ -198,6 +219,7 @@ function renderHome() {
   const novelties=main.querySelector('.atelier-new');
   if(novelties) novelties.outerHTML=window.SaliniAtelier.newSection(data.products,card);
   else collections?.insertAdjacentHTML('afterend',window.SaliniAtelier.newSection(data.products,card)+window.SaliniAtelier.cinema());
+  if(!main.querySelector('.experience-portal'))main.querySelector('.atelier-cinema')?.insertAdjacentHTML('afterend',window.SaliniExperience.portal());
   slideIndex = 0;
   window.SaliniHome?.mount(main);
 }
@@ -314,6 +336,9 @@ function renderCatalog(params = new URLSearchParams()) {
 function renderProduct(id, params = new URLSearchParams()) {
   const p = data.products.find(p => p.id === (data.legacyIds?.[id] || id));
   if (!p) { renderNotFound(); return; }
+  if(!params.has('variant')&&!params.has('sku')&&!params.has('ral')) {
+    const saved=savedConfiguration(p);if(saved){params=new URLSearchParams(params);params.set('variant',saved.variant);if(saved.ral)params.set('ral',saved.ral);}
+  }
   const requestedSku = params.get("sku"), requestedVariant = params.get("variant");
   const skuCandidate = requestedSku ? matches(p, requestedSku, "variant") : null;
   const skuMatch = skuCandidate?.reference ? null : skuCandidate;
@@ -321,8 +346,9 @@ function renderProduct(id, params = new URLSearchParams()) {
   const selected = skuMatch?.variant || exactVariant || p.variants[0];
   let selectedSku = skuMatch?.sku || selected?.sku || p.article;
   let image = p.image;
-  let back = "#/catalog";
-  try { const saved = JSON.parse(sessionStorage.getItem("salini-catalog-context") || "null"); if (saved?.href && new URL(saved.href, siteBase).origin === siteBase.origin && new URL(saved.href, siteBase).pathname === routeURL("/catalog").pathname && Date.now()-saved.at<30*60*1000) back=saved.href; } catch {}
+  let back = "#/catalog", backLabel='К каталогу';
+  try{if(sessionStorage.getItem('salini-product-origin')==='favorites'){back='#/favorites';backLabel='К подборке';}else if(sessionStorage.getItem('salini-product-origin')==='experience'){back='#/experience';backLabel='К истории';}}catch{}
+  try { const saved = JSON.parse(sessionStorage.getItem("salini-catalog-context") || "null"); if (backLabel!=='К подборке' && saved?.href && new URL(saved.href, siteBase).origin === siteBase.origin && new URL(saved.href, siteBase).pathname === routeURL("/catalog").pathname && Date.now()-saved.at<30*60*1000) back=saved.href; } catch {}
   const sourceDate = String(p.sourceDate || data.snapshotDate || "").slice(0,10).split("-").reverse().join(".");
   const specs = [["Размеры",p.dimensionsLabel],["Материалы",p.materials.join(" / ") || "См. спецификацию"],["Тип и установка",p.subcategory || p.type],["Глубина до перелива",Number.isFinite(p.depthToOverflow)?p.depthToOverflow+" мм":null]].filter(([,value])=>value);
   const gallery = p.gallery || (p.image?[p.image]:[]);
@@ -331,7 +357,8 @@ function renderProduct(id, params = new URLSearchParams()) {
     return `<section class="live-reference" aria-label="Актуальное исполнение"><h3>${esc(ref.name)}</h3><p class="small-note">Проверено ${esc(ref.sourceDate.split("-").reverse().join("."))}. ${esc(note)}</p><p>${esc(ref.dimensionsLabel)} · ${esc(ref.variants.map(v=>v.sku).filter(Boolean).join(" / "))}</p><details><summary class="line-link">Описание актуального исполнения</summary><p>${esc(ref.description)}</p>${ref.gallery.map(im=>`<img src="${esc(im.src)}" alt="${esc(ref.name)}" width="${im.width}" height="${im.height}" loading="lazy" style="width:100%;height:auto;border-radius:var(--radius-card)">`).join("")}</details><a class="button" href="${esc(ref.sourceUrl)}" target="_blank" rel="noopener">Открыть это исполнение <span aria-hidden="true">↗︎</span></a></section>`;
   }).join("");
   document.title = `${p.name} — Salini`;
-  main.innerHTML = `<div class="page-heading wrap">${breadcrumb(p.name)}<a class="line-link" href="${esc(back)}">← К каталогу</a></div><section class="detail wrap"><div class="detail-photo">${productImage(p)}${image?'<button class="line-link" id="product-image-open">Рассмотреть фото <span aria-hidden="true">↗︎</span></button>':""}${gallery.length>1?`<div class="detail-thumbs" aria-label="Фотографии изделия">${gallery.map((item,i)=>`<button class="button" data-product-image="${i}" aria-pressed="${i===0}" aria-label="Фото ${i+1} из ${gallery.length}"><img src="${esc(item.src)}" alt="" width="64" height="64"></button>`).join("")}</div>`:""}</div><div class="detail-info"><span class="eyebrow">${p.collection?"Коллекция "+esc(p.collection):esc(p.category)}${p.nativeAvailable===false?" · новинка сайта":""}</span><h1>${esc(p.name)}</h1><p>${esc(p.subtitle)}</p>${p.description?`<details class="product-description"><summary class="line-link">Об изделии</summary><p>${esc(p.bodyDescription?.text || p.description)}</p></details>`:""}<dl class="spec-list"><div><dt>Артикул выбранной версии</dt><dd id="product-sku">${esc(selectedSku || "См. спецификацию")}</dd></div>${specs.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl><div class="detail-actions"><button class="button button-dark" data-save="${esc(p.id)}" aria-pressed="false">В мою подборку ${heartIcon}</button><a class="button" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Варианты и стоимость <span aria-hidden="true">↗︎</span></a></div>${p.nativeAvailable===false?'<p class="small-note">Это изделие пока доступно только в каталоге сайта. Его можно сохранить в веб-подборку и открыть по ссылке.</p><a class="line-link app-product-link" href="#/app">Приложение Salini для iPhone <span aria-hidden="true">↗︎</span></a>':`<button class="line-link app-product-link" data-app-product="${esc(p.id)}">Продолжить на iPhone <span aria-hidden="true">↗︎</span></button>`}<div class="variant-options"><label class="field">Исполнение<select id="product-variant">${p.variants.map((v,i)=>`<option value="${esc(v.id)}" ${v.id===selected?.id?"selected":""}>${esc(v.title || v.sku || "Вариант "+(i+1))}</option>`).join("")}</select></label><p id="variant-info" class="small-note" aria-live="polite"></p>${(requestedSku&&!skuMatch)||(requestedVariant&&!exactVariant)?'<p class="small-note">Исполнение из ссылки не найдено. Проверьте артикул или выберите доступный вариант ниже.</p>':""}</div><p class="detail-disclaimer">Размеры указаны для базового варианта. Отделка и материал могут менять характеристики. Точные параметры для заказа — в документах изделия и у команды Salini.</p><a class="line-link" href="#/dealers?product=${encodeURIComponent(p.id)}">Посмотреть в салоне <span aria-hidden="true">↗︎</span></a><p class="small-note">Участие изделия в экспозиции и наличие для покупки уточняйте у салона.</p>${liveReferences?`<div class="downloads"><h2>Актуальные исполнения</h2>${liveReferences}</div>`:""}<div class="downloads"><h2>Для вашего проекта</h2>${p.downloads.map(d=>`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)} <span aria-hidden="true">↗︎</span></a>`).join("")}<a href="#/documents?product=${encodeURIComponent(p.id)}">Библиотека документов изделия <span aria-hidden="true">↗︎</span></a></div><p class="small-note">${p.sourceStatus==="current"?"Источник проверен":"Каталог по данным"} ${esc(sourceDate)}. <a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Страница на официальном сайте</a></p><button class="line-link contact-toggle">Помочь с выбором <span aria-hidden="true">↗︎</span></button></div></section>`;
+  main.innerHTML = `<div class="page-heading wrap">${breadcrumb(p.name)}<a class="line-link" href="${esc(back)}">← ${backLabel}</a></div><section class="detail wrap"><div class="detail-photo">${productImage(p)}${image?'<button class="line-link" id="product-image-open">Рассмотреть фото <span aria-hidden="true">↗︎</span></button>':""}${gallery.length>1?`<div class="detail-thumbs" aria-label="Фотографии изделия">${gallery.map((item,i)=>`<button class="button" data-product-image="${i}" aria-pressed="${i===0}" aria-label="Фото ${i+1} из ${gallery.length}"><img src="${esc(item.src)}" alt="" width="64" height="64"></button>`).join("")}</div>`:""}</div><div class="detail-info"><span class="eyebrow">${p.collection?"Коллекция "+esc(p.collection):esc(p.category)}${p.nativeAvailable===false?" · новинка сайта":""}</span><h1>${esc(p.name)}</h1><p>${esc(p.subtitle)}</p>${p.description?`<details class="product-description"><summary class="line-link">Об изделии</summary><p>${esc(p.bodyDescription?.text || p.description)}</p></details>`:""}<dl class="spec-list"><div><dt>Артикул выбранной версии</dt><dd id="product-sku">${esc(selectedSku || "См. спецификацию")}</dd></div>${specs.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl><div class="detail-actions"><button class="button button-dark" data-save="${esc(p.id)}" aria-pressed="false">В мою подборку ${heartIcon}</button><a class="button" href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Варианты и стоимость <span aria-hidden="true">↗︎</span></a></div>${p.nativeAvailable===false?'<p class="small-note">Это изделие пока доступно только в каталоге сайта. Его можно сохранить в веб-подборку и открыть по ссылке.</p><a class="line-link app-product-link" href="#/app">Приложение Salini для iPhone <span aria-hidden="true">↗︎</span></a>':`<button class="line-link app-product-link" data-app-product="${esc(p.id)}">Продолжить на iPhone <span aria-hidden="true">↗︎</span></button>`}<div class="variant-options"><label class="field">Исполнение<select id="product-variant">${p.variants.map((v,i)=>`<option value="${esc(v.id)}" ${v.id===selected?.id?"selected":""}>${esc(v.title || v.sku || "Вариант "+(i+1))}</option>`).join("")}</select></label><p id="variant-info" class="small-note" aria-live="polite"></p>${(requestedSku&&!skuMatch)||(requestedVariant&&!exactVariant)?'<p class="small-note">Исполнение из ссылки не найдено. Проверьте артикул или выберите доступный вариант ниже.</p>':""}</div><p class="detail-disclaimer">Размеры указаны для базового варианта. Отделка и материал могут менять характеристики. Точные параметры для заказа — в документах изделия и у команды Salini.</p><a class="line-link" href="#/dealers?product=${encodeURIComponent(p.id)}">Посмотреть в салоне <span aria-hidden="true">↗︎</span></a><p class="small-note">Участие изделия в экспозиции и наличие для покупки уточняйте у салона.</p>${liveReferences?`<div class="downloads"><h2>Актуальные исполнения</h2>${liveReferences}</div>`:""}<div class="downloads"><h2>Для вашего проекта</h2>${p.downloads.map(d=>`<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)} <span aria-hidden="true">↗︎</span></a>`).join("")}<a href="#/documents?product=${encodeURIComponent(p.id)}">Библиотека документов изделия <span aria-hidden="true">↗︎</span></a></div><p class="small-note">${p.sourceStatus==="current"?"Источник проверен":"Каталог по данным"} ${esc(sourceDate)}. <a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">Страница на официальном сайте</a></p><button class="line-link contact-toggle">Помочь с выбором <span aria-hidden="true">↗︎</span></button></div></section>`;
+  if(window.SaliniExperience.hasModel(p))$('.detail-photo').insertAdjacentHTML('beforeend','<details class="product-model-entry"><summary class="line-link">Форма и цвет в 3D <span aria-hidden="true">↗</span></summary>'+window.SaliniExperience.viewer(p)+'</details>');
   syncFavorites();
   const variant = $("#product-variant"), configurator=$('.variant-options');
   configurator.classList.add('product-configurator');
@@ -353,7 +380,9 @@ function renderProduct(id, params = new URLSearchParams()) {
     $$('[data-variant-pick]',configurator).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.variantPick===variant.value)));
     $("#variant-info").textContent=v?["Артикул: "+(selectedSku || "уточняется"),Number.isFinite(v.weightKg)&&v.weightKg>0?"Вес: "+v.weightKg+" кг":null].filter(Boolean).join(" · "):"Исполнение уточняется на официальном сайте";
     $("#product-sku").textContent=selectedSku || "См. спецификацию";
-    if(writeURL && v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);if(ral)next.set('ral',ral);history.replaceState(history.state,"",routeURL(productUrl(p)+"?"+next)); }
+    if(writeURL&&v)saveConfiguration(p,{variant:v.id,ral});
+    if((writeURL||ral)&&v) { const next=new URLSearchParams({variant:v.id});if(selectedSku)next.set("sku",selectedSku);if(ral)next.set('ral',ral);history.replaceState(history.state,"",routeURL(productUrl(p)+"?"+next)); }
+    document.dispatchEvent(new CustomEvent('salini:configuration'));
   };
   variant.addEventListener("change",()=>update(true));
   $$('[data-variant-pick]',configurator).forEach(b=>b.addEventListener('click',()=>{variant.value=b.dataset.variantPick;update(true);}));
@@ -382,7 +411,7 @@ function renderFavorites() {
   main.innerHTML =
     pageHeading(
       "Моя подборка",
-      "Ваше личное пространство начинается с деталей. Сохранённые изделия доступны в этом браузере.",
+      "Ваше личное пространство начинается с деталей. Изделия, материал и выбранный оттенок сохраняются в этом браузере.",
       selected.length
         ? '<div class="favorites-actions"><button class="button button-dark" id="export-selection">Скачать подборку <span>↓</span></button><button class="button" id="share-selection">Поделиться ссылкой <span>↗︎</span></button><button class="button" id="open-app-selection">На iPhone <span aria-hidden="true">↗︎</span></button></div>'
         : "",
@@ -392,7 +421,7 @@ function renderFavorites() {
 }
 function exportSelection() {
   const selected = data.products.filter((p) => favoriteIds.has(p.id));
-  const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>Моя подборка Salini</title><style>body{font:15px/1.7 Arial,sans-serif;max-width:850px;margin:60px auto;padding:20px;color:#2b3229}h1{font:42px Georgia}article{border-top:1px solid #ddd;padding:25px 0}h2{font:30px Georgia;margin:0}a{color:#53614d}small{color:#666}@media print{article{break-inside:avoid}}</style><h1>Salini · Моя подборка</h1><p>Коллекция идей для вашего пространства.</p>${selected.map((p) => `<article><h2>${esc(p.name)}</h2><p>${esc(p.subtitle)} · ${esc(p.dimensionsLabel)}<br>${esc(p.materials.join(", "))}<br>Артикул: ${esc(p.article)}</p><a href="${esc(p.sourceUrl)}">Открыть изделие и актуальные варианты ↗︎</a></article>`).join("")}<small>Подборка составлена на основе данных каталога от 06.10.2026. Параметры необходимо уточнить перед заказом. Документ можно сохранить в PDF через печать браузера.</small></html>`;
+  const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>Моя подборка Salini</title><style>body{font:15px/1.7 Arial,sans-serif;max-width:850px;margin:60px auto;padding:20px;color:#2b3229}h1{font:42px Georgia}article{border-top:1px solid #ddd;padding:25px 0}h2{font:30px Georgia;margin:0}a{color:#53614d}small{color:#666}@media print{article{break-inside:avoid}}</style><h1>Salini · Моя подборка</h1><p>Коллекция идей для вашего пространства.</p>${selected.map((p) => `<article><h2>${esc(p.name)}</h2><p>${esc(p.subtitle)} · ${esc(p.dimensionsLabel)}<br>${esc(p.materials.join(", "))}<br>Артикул: ${esc((()=>{const c=savedConfiguration(p),v=p.variants.find(v=>v.id===c?.variant);return c?.ral?v?.customColourSku||'по запросу':v?.sku||p.article;})())}<br>${esc((()=>{const c=savedConfiguration(p);return c?(p.variants.find(v=>v.id===c.variant)?.title||'')+' · '+(c.ral?'RAL '+c.ral:'Базовый белый'):'';})())}</p><a href="${esc(publicUrl(configurationURL(p,savedConfiguration(p))))}">Открыть выбранное исполнение ↗︎</a></article>`).join("")}<small>Подборка составлена на основе данных каталога от 06.10.2026. Параметры необходимо уточнить перед заказом. Документ можно сохранить в PDF через печать браузера.</small></html>`;
   const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob),
     a = document.createElement("a");
@@ -584,9 +613,10 @@ async function route({restoreScroll=false} = {}) {
   if (dialog.open) closeDialog();
   window.SaliniHome?.dispose();
   window.SaliniAtelier.dispose();
+  window.SaliniExperience.dispose();
   main.setAttribute('aria-busy','true');
   try {
-    const needsCatalog = ['/','/new','/catalog','/favorites','/selection','/documents'].includes(path) || path.startsWith('/product/') || (path === '/dealers' && params.has('product'));
+    const needsCatalog = ['/','/experience','/new','/catalog','/favorites','/selection','/documents'].includes(path) || path.startsWith('/product/') || (path === '/dealers' && params.has('product'));
     if (needsCatalog) await ensureCatalog();
     if (window.SaliniSupport.handles(path)) await window.SaliniSupport.load();
     if (window.SaliniEditorial.handles(path)) await window.SaliniEditorial.load();
@@ -599,6 +629,7 @@ async function route({restoreScroll=false} = {}) {
     }
     if (serial !== routeSerial) return;
     if (path === '/') renderHome();
+    else if (path === '/experience') main.innerHTML=window.SaliniExperience.render(data.products);
     else if (path === '/catalog') renderCatalog(params);
     else if (path.startsWith('/product/')) renderProduct(decodeURIComponent(path.slice(9)), params);
     else if (path === '/favorites') renderFavorites();
@@ -612,6 +643,7 @@ async function route({restoreScroll=false} = {}) {
 
     if(['/collection/ninfea','/collection/opera','/collection/greca'].includes(path))main.insertAdjacentHTML('beforeend',window.SaliniAtelier.cinema(path.split('/').pop()));
     main.dataset.renderedPath = path;
+    document.querySelectorAll('a[href$="#main"]').forEach(a=>a.href=location.pathname+location.search+"#main");
     document.title = path === '/' ? 'Salini — L’anima dell’acqua' : (($('h1',main)?.innerText.replace(/\s+/g,' ') || 'Salini') + ' — Salini');
     const canonical = new URL(path === '/' ? '' : path.slice(1) + '/',PUBLIC_SITE_URL).href;
     $('link[rel="canonical"]')?.setAttribute('href',canonical);
@@ -625,6 +657,7 @@ async function route({restoreScroll=false} = {}) {
     });
     syncFavorites();
     window.SaliniAtelier.mountCinema(main);
+    window.SaliniExperience.mount(main,path,data.products);
     main.focus({preventScroll:true});
     if (!restorePosition) {
       window.scrollTo({top:0,left:0,behavior:'instant'});
@@ -653,6 +686,7 @@ async function route({restoreScroll=false} = {}) {
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button,a");
   if (!b) return;
+  if(b.tagName==='A'&&/(?:#)?\/product\//.test(b.getAttribute('href')||''))try{const from=currentRoute().path;sessionStorage.setItem('salini-product-origin',from==='/favorites'?'favorites':from==='/experience'?'experience':'catalog');}catch{}
   if (b.matches('.skip')) {e.preventDefault(); main.focus(); main.scrollIntoView({block:'start'}); return;}
   if (b.matches("[data-retry-route]")) route();
   if (b.matches("[data-save]")) {
