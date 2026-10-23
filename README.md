@@ -6,4 +6,4 @@
 
 Источники и права: [ASSET_NOTICES.md](ASSET_NOTICES.md). Лицензии шрифтов: [Manrope](licenses/MANROPE-OFL.txt), [Cormorant Garamond](licenses/CORMORANT-OFL.txt).
 
-Исходная ревизия: `dde775c903f508b41e7acc9b98e3209b05ad2528`; сведения — [SOURCE_COMMIT.json](SOURCE_COMMIT.json).
+Исходная ревизия: `f138b947016e2c2f2a2020c29bad1e851f6c4516`; сведения — [SOURCE_COMMIT.json](SOURCE_COMMIT.json).
