@@ -34,7 +34,15 @@ window.SaliniExperience = (() => {
   }
   function viewer(p, {large=false}={}) {
     if(!hasModel(p))return '';
-    return `<section class="form-viewer ${large?'form-viewer-large':''}" data-form-viewer="${esc(p.id)}" ${large?'data-auto-model="true"':''} aria-label="3D ${esc(p.name)}"><div class="form-viewer-stage"><div class="form-viewer-poster">${p.image?`<img src="${esc(p.image.src)}" alt="${esc(p.name)} — официальная фотография" width="${p.image.width}" height="${p.image.height}" loading="lazy">`:''}<button class="button button-dark" data-load-model>Рассмотреть в 3D <span aria-hidden="true">↗</span></button></div><div class="form-viewer-mount"></div><span class="form-viewer-status" role="status"></span></div><div class="form-viewer-tools" hidden><div class="form-views" role="group" aria-label="Ракурс модели"><button data-model-view="form" aria-pressed="true">Объём</button><button data-model-view="top" aria-pressed="false">Сверху</button><button data-model-view="detail" aria-pressed="false">Ближе</button></div><button data-model-photo>К фото</button></div><p class="form-viewer-note">Точная форма из 3D-модели Salini. Потяните для поворота. Цвет и блеск на экране — приближение.</p></section>`;
+    const poster=p.presentation?.studio||p.image;
+    return `<section class="form-viewer ${large?'form-viewer-large':''}" data-form-viewer="${esc(p.id)}" data-auto-model="true" aria-label="3D ${esc(p.name)}"><div class="form-viewer-stage"><div class="form-viewer-poster">${poster?`<img src="${esc(poster.src)}" alt="${esc(p.name)} — форма изделия" width="${poster.width}" height="${poster.height}" loading="lazy">`:''}<button class="button button-dark" data-load-model>Рассмотреть в 3D <span aria-hidden="true">↗</span></button></div><div class="form-viewer-mount"></div><span class="form-viewer-status" role="status"></span></div><div class="form-viewer-tools" hidden><div class="form-views" role="group" aria-label="Ракурс модели"><button data-model-view="form" aria-pressed="true">Объём</button><button data-model-view="top" aria-pressed="false">Сверху</button><button data-model-view="detail" aria-pressed="false">Ближе</button></div><button data-model-photo>Фотографии <span aria-hidden="true">↓</span></button></div><p class="form-viewer-note"><span data-surface-label>Минеральное литьё</span> · Студийный свет. Потяните для поворота.</p></section>`;
+  }
+  function collectionViewer(record, products) {
+    if(record.kind!=='collections')return '';
+    const slug=record.path.split('/').pop();
+    const product=products.find(p=>hasModel(p)&&(p.collection||'').toLowerCase()===slug);
+    if(!product)return '';
+    return `<section class="collection-sculpture" data-collection-model><div class="collection-sculpture-copy"><span class="eyebrow">Сначала — форма</span><h2>${esc(product.name)}</h2><p>Рассмотрите точную модель со всех сторон.<br>Затем — коллекцию в интерьере.</p><a class="line-link" href="#/product/${product.id}">Материал, цвет и размеры <span>↗</span></a></div>${viewer(product,{large:true})}</section>`;
   }
   function waterChapter() {
     return `<section class="water-fill water-journey cinema-journey" id="water-fill" aria-labelledby="water-title"><div class="water-fill-stage">
@@ -67,6 +75,40 @@ window.SaliniExperience = (() => {
     }).catch(error=>{library=null;throw error;});
     return library;
   }
+  // Studio settings are shared by full viewers and the lightweight catalogue previews.
+  // These optical values are visual approximations, not measured manufacturer data.
+  function surface(value={}) {
+    const gloss=value.finish==='gloss', sense=value.material==='sSense';
+    return {
+      colour:window.SaliniAtelier.colours.find(c=>c[0]===value.ral)?.[2]||'#F1F0EA',
+      roughness:gloss?.2:sense?.36:.43,
+      coat:gloss?.85:sense?.18:0,
+      coatRoughness:gloss?.085:.32,
+      ior:sense?1.5:1.47,
+      label:(sense?'S-Sense':'S-Stone')+(gloss?' · глянцевая поверхность':' · матовая поверхность'),
+    };
+  }
+  function applySurface(model, value={}) {
+    if(!model?.model)return;
+    const finish=surface(value);
+    model.model.materials.filter(m=>m.name.startsWith('body_')).forEach(m=>{
+      // CSS strings are interpreted as sRGB by model-viewer; arrays would be linear.
+      m.pbrMetallicRoughness.setBaseColorFactor(finish.colour);
+      m.pbrMetallicRoughness.setRoughnessFactor(finish.roughness);
+      m.pbrMetallicRoughness.setMetallicFactor(0);
+      m.setIor(finish.ior);
+      m.setSpecularFactor(1);
+      m.setClearcoatFactor(finish.coat);
+      m.setClearcoatRoughnessFactor(finish.coatRoughness);
+    });
+  }
+  function lightModel(model) {
+    model.setAttribute('shadow-intensity','.7');model.setAttribute('shadow-softness','1');
+    model.setAttribute('exposure','1');model.setAttribute('tone-mapping','neutral');
+    model.setAttribute('environment-image',new URL('assets/studio-neutral-1024.hdr',document.baseURI).href);
+    model.setAttribute('interaction-prompt','none');model.setAttribute('rotation-per-second','2deg');
+    model.setAttribute('auto-rotate-delay','4000');
+  }
   function mountViewer(section, getConfiguration) {
     const poster=section.querySelector('.form-viewer-poster'), mount=section.querySelector('.form-viewer-mount'),
       start=section.querySelector('[data-load-model]'),status=section.querySelector('[role=status]'),tools=section.querySelector('.form-viewer-tools');
@@ -76,12 +118,8 @@ window.SaliniExperience = (() => {
     function appearance() {
       if(!model?.model)return;
       const value=getConfiguration?.()||{};
-      const colour=window.SaliniAtelier.colours.find(c=>c[0]===value.ral)?.[2]||'#F1F0EA';
-      model.model.materials.filter(m=>m.name.startsWith('body_')).forEach(m=>{
-        m.pbrMetallicRoughness.setBaseColorFactor(colour);
-        m.pbrMetallicRoughness.setRoughnessFactor(value.finish==='gloss'?.18:.57);
-        m.pbrMetallicRoughness.setMetallicFactor(0);
-      });
+      applySurface(model,value);
+      section.querySelector('[data-surface-label]').textContent=surface(value).label;
     }
     function motion(){
       if(!model)return;
@@ -89,27 +127,29 @@ window.SaliniExperience = (() => {
       if(automatic&&visible&&model.loaded&&!entryDone){entryDone=true;if(!reduce.matches)model.cameraOrbit='30deg 65deg auto';}
     }
     async function load() {
+      if(loading)return;
       if(model){poster.hidden=true;mount.hidden=false;tools.hidden=false;motion();return;}
-      if(loading)return;loading=true;start.disabled=true;mount.hidden=false;status.textContent='Открываем форму…';
+      loading=true;start.disabled=true;mount.hidden=false;section.classList.add('is-loading');status.textContent='Открываем форму…';
       try {
         await ensureLibrary();if(dead)return;
         model=document.createElement('model-viewer');
-        model.setAttribute('src',new URL(`assets/model-${section.dataset.formViewer}.glb?v=mineral-3`,document.baseURI));
+        model.setAttribute('src',new URL(`assets/model-${section.dataset.formViewer}-pbr.glb?v=studio-1`,document.baseURI));
         model.setAttribute('alt',section.getAttribute('aria-label'));
         model.setAttribute('camera-controls','');model.setAttribute('disable-zoom','');model.setAttribute('touch-action','pan-y');
         model.setAttribute('camera-orbit',automatic&&!reduce.matches?'40deg 68deg auto':'30deg 65deg auto');model.setAttribute('interpolation-decay','160');model.setAttribute('field-of-view','30deg');
         model.setAttribute('min-camera-orbit','auto 10deg 70%');model.setAttribute('max-camera-orbit','auto 89deg 180%');
-        model.setAttribute('shadow-intensity','.55');model.setAttribute('shadow-softness','1');
-        model.setAttribute('exposure','.82');model.setAttribute('tone-mapping','neutral');model.setAttribute('environment-image',new URL('assets/water-studio-512.hdr',document.baseURI).href);
-        model.setAttribute('interaction-prompt','none');model.setAttribute('rotation-per-second','2deg');model.setAttribute('auto-rotate-delay','4000');
-        model.addEventListener('load',()=>{clearTimeout(loadTimer);if(dead)return;loading=false;appearance();poster.hidden=true;tools.hidden=false;status.textContent='';start.disabled=false;motion();});
-        const failed=()=>{clearTimeout(loadTimer);if(dead)return;status.textContent='3D сейчас недоступно. Попробуйте ещё раз или посмотрите фотографию.';model?.remove();model=null;loading=false;poster.hidden=false;tools.hidden=true;start.disabled=false;};
+        lightModel(model);
+        model.addEventListener('load',()=>{clearTimeout(loadTimer);if(dead)return;loading=false;appearance();poster.hidden=true;tools.hidden=false;section.classList.remove('is-loading');section.classList.add('is-ready');status.textContent='';start.disabled=false;motion();});
+        const failed=()=>{clearTimeout(loadTimer);if(dead)return;section.classList.remove('is-loading','is-ready');status.textContent='3D сейчас недоступно. Фотографии — ниже. Можно попробовать ещё раз.';model?.remove();model=null;loading=false;poster.hidden=false;tools.hidden=true;start.disabled=false;};
         model.addEventListener('error',failed);loadTimer=setTimeout(failed,25000);
         mount.append(model);
-      } catch {loading=false;if(!dead){status.textContent='Не удалось загрузить 3D. Можно попробовать ещё раз.';start.disabled=false;}}
+      } catch {loading=false;if(!dead){section.classList.remove('is-loading');status.textContent='Не удалось загрузить 3D. Фотографии доступны ниже.';start.disabled=false;}}
     }
     start.addEventListener('click',load);
-    section.querySelector('[data-model-photo]').addEventListener('click',()=>{poster.hidden=false;mount.hidden=true;tools.hidden=true;if(model)model.autoRotate=false;});
+    section.querySelector('[data-model-photo]').addEventListener('click',()=>{
+      const target=section.closest('.detail-photo')?.querySelector('.product-photos')||section.closest('.collection-sculpture')?.nextElementSibling||document.querySelector('[data-story-gallery]');
+      target?.scrollIntoView({behavior:reduce.matches?'instant':'smooth',block:'start'});
+    });
     section.querySelectorAll('[data-model-view]').forEach(button=>button.addEventListener('click',()=>{
       if(model)model.cameraOrbit=button.dataset.modelView==='top'?'0deg 12deg auto':button.dataset.modelView==='detail'?'30deg 65deg 75%':'30deg 65deg auto';
       section.querySelectorAll('[data-model-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
@@ -122,15 +162,75 @@ window.SaliniExperience = (() => {
     const dispose=()=>{dead=true;clearTimeout(loadTimer);io.disconnect();prefetch?.disconnect();document.removeEventListener('visibilitychange',motion);reduce.removeEventListener('change',motion);document.removeEventListener('salini:configuration',onConfig);if(model){model.autoRotate=false;model.removeAttribute('src');model.remove();}};
     cleanup.push(dispose);return {appearance,dispose,load};
   }
+  function mountPreviews(root,products) {
+    const entries=new Map(),reduce=matchMedia('(prefers-reduced-motion: reduce)'),mobile=matchMedia('(max-width:700px)');
+    let dead=false,timer;
+    function release(entry) {
+      entry.generation++;entry.pending=false;
+      if(entry.model){entry.model.autoRotate=false;entry.model.removeAttribute('src');entry.model.remove();entry.model=null;}
+      entry.node.closest('.image-wrap')?.classList.remove('has-live-model');
+    }
+    async function activate(entry) {
+      if(entry.model||entry.pending||entry.failed)return;
+      entry.pending=true;const token=++entry.generation;
+      try {
+        await ensureLibrary();
+        if(dead||token!==entry.generation||!entry.node.isConnected)return;
+        const model=document.createElement('model-viewer');entry.model=model;entry.pending=false;
+        model.setAttribute('src',new URL(`assets/model-${entry.product.id}-pbr.glb?v=studio-1`,document.baseURI));
+        model.setAttribute('aria-hidden','true');model.setAttribute('tabindex','-1');
+        model.setAttribute('camera-orbit','30deg 65deg auto');model.setAttribute('field-of-view','30deg');
+        lightModel(model);model.setAttribute('rotation-per-second','3deg');
+        model.addEventListener('load',()=>{
+          if(dead||token!==entry.generation)return;
+          const variant=entry.product.variants.find(v=>v.id===entry.node.dataset.previewVariant)||entry.product.variants[0];
+          applySurface(model,{...variant,ral:entry.node.dataset.previewRal});
+          entry.node.closest('.image-wrap')?.classList.add('has-live-model');
+          model.autoRotate=!reduce.matches&&!document.hidden;
+        },{once:true});
+        model.addEventListener('error',()=>{if(token===entry.generation){entry.failed=true;release(entry);}},{once:true});
+        entry.node.append(model);
+      }catch{if(token===entry.generation){entry.failed=true;entry.pending=false;}}
+    }
+    function refresh() {
+      if(dead)return;
+      const candidates=[...entries.values()].filter(e=>e.ratio>.2&&e.node.isConnected&&!e.failed);
+      // Prioritize the most visible cards, keeping the renderer budget small on phones.
+      candidates.sort((a,b)=>b.ratio-a.ratio||Math.abs(a.node.getBoundingClientRect().top-innerHeight*.4)-Math.abs(b.node.getBoundingClientRect().top-innerHeight*.4));
+      const active=new Set(document.hidden||navigator.connection?.saveData?[]:candidates.slice(0,mobile.matches?1:2));
+      for(const entry of entries.values()) {
+        if(!active.has(entry)){if(entry.model||entry.pending)release(entry);}
+        else {activate(entry);if(entry.model)entry.model.autoRotate=!reduce.matches;}
+      }
+    }
+    const schedule=()=>{clearTimeout(timer);timer=setTimeout(refresh,90);};
+    const io=new IntersectionObserver(changes=>{for(const change of changes){const entry=entries.get(change.target);if(entry)entry.ratio=change.intersectionRatio;}schedule();},{threshold:[0,.2,.5,.8,1]});
+    function scan() {
+      for(const [node,entry] of entries)if(!node.isConnected){release(entry);io.unobserve(node);entries.delete(node);}
+      root.querySelectorAll('[data-card-model]').forEach(node=>{
+        if(entries.has(node))return;
+        const product=products.find(p=>p.id===node.dataset.cardModel);if(!product||!hasModel(product))return;
+        entries.set(node,{node,product,ratio:0,generation:0,model:null,pending:false,failed:false});io.observe(node);
+      });
+    }
+    scan();
+    const observer=new MutationObserver(records=>{
+      if(records.some(r=>[...r.addedNodes,...r.removedNodes].some(n=>n.nodeType===1&&(n.matches?.('[data-card-model],.product-card')||n.querySelector?.('[data-card-model]'))))) {scan();schedule();}
+    });observer.observe(root,{childList:true,subtree:true});
+    document.addEventListener('visibilitychange',refresh);reduce.addEventListener('change',refresh);mobile.addEventListener('change',refresh);
+    cleanup.push(()=>{dead=true;clearTimeout(timer);io.disconnect();observer.disconnect();entries.forEach(release);entries.clear();document.removeEventListener('visibilitychange',refresh);reduce.removeEventListener('change',refresh);mobile.removeEventListener('change',refresh);});
+  }
   function mount(root,path,products) {
+    mountPreviews(root,products);
     if(path==='/')mountPortal(root);
     if(path.startsWith('/product/')) {
       root.querySelectorAll('[data-form-viewer]').forEach(section=>{const controller=mountViewer(section,()=>{
         const p=products.find(p=>p.id===section.dataset.formViewer),params=new URLSearchParams(location.search);
         const variant=p?.variants.find(v=>v.id===root.querySelector('#product-variant')?.value);
-        return {ral:params.get('ral'),finish:variant?.finish};
+        return {ral:params.get('ral'),finish:variant?.finish,material:variant?.material};
       });const details=section.closest('details');if(details)details.addEventListener('toggle',()=>{if(details.open)controller.load();});});
     }
+    if(path.startsWith('/collection/'))root.querySelectorAll('[data-form-viewer]').forEach(section=>mountViewer(section,()=>products.find(p=>p.id===section.dataset.formViewer)?.variants[0]||{}));
     if(path!=='/experience')return;
     let chosen='1364',ral='',current;
     const reduce=matchMedia('(prefers-reduced-motion: reduce)');
@@ -148,8 +248,7 @@ window.SaliniExperience = (() => {
 
   }
   function intro() {
-    if(document.documentElement.dataset.route!=='/'||matchMedia('(prefers-reduced-motion: reduce)').matches||navigator.connection?.saveData)return;
-    try {if(sessionStorage.getItem('salini-entered-v1'))return;sessionStorage.setItem('salini-entered-v1','1');}catch{}
+    if(document.querySelector('.salini-arrival'))return;
     const veil=document.createElement('div');veil.className='salini-arrival';veil.innerHTML='<div class="arrival-water" aria-hidden="true"></div><div class="arrival-word" aria-hidden="true"><img src="assets/salini-logo.svg" alt="" width="300" height="122"><span>L’ANIMA DELL’ACQUA</span></div><button aria-label="Пропустить вступление">Войти сразу ↗</button>';
     document.body.append(veil);
     let ended=false;const finish=()=>{if(ended)return;ended=true;veil.classList.add('is-open');setTimeout(()=>veil.remove(),650);};
@@ -157,6 +256,6 @@ window.SaliniExperience = (() => {
     setTimeout(finish,1100);setTimeout(()=>veil.remove(),2400);
   }
   const dispose=()=>{cleanup.forEach(f=>f());cleanup=[];};
-  return {modelIDs,hasModel,viewer,portal,waterPortal,render,mount,dispose,intro};
+  return {modelIDs,hasModel,viewer,collectionViewer,surface,applySurface,portal,waterPortal,render,mount,dispose,intro};
 })();
 if(typeof document!=='undefined')window.SaliniExperience.intro();

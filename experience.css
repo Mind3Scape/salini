@@ -113,3 +113,57 @@ body:has(.water-journey) .header .desktop-nav a,body:has(.water-journey) .header
 .water-portal-copy h2 em{color:inherit}
 
 @media(max-width:700px){.water-portal-shade{background:linear-gradient(90deg,#09231da6,transparent 100%),linear-gradient(0deg,#06241b66,transparent 40%)}}
+
+/* One neutral studio. Product geometry comes before the original photographs. */
+.form-viewer{--studio:#e9e7df}
+.form-viewer .form-viewer-stage,.form-viewer .form-viewer-stage:has(model-viewer),.form-viewer .form-viewer-poster{background:var(--studio)}
+.form-viewer-stage{border-color:transparent}
+.form-viewer-poster img{mix-blend-mode:normal;object-fit:contain;aspect-ratio:auto}
+.form-viewer.is-loading .form-viewer-poster img{opacity:.3;transition:opacity .3s}
+.form-viewer.is-loading [data-load-model]{visibility:hidden}
+.form-viewer-mount{opacity:1}
+.form-viewer.is-ready .form-viewer-mount{opacity:1}
+.form-viewer [data-surface-label]{color:var(--ink)}
+.detail-photo:has(.form-viewer){position:static}
+.detail-photo>.form-viewer{margin-top:0}
+.product-photos{margin-top:48px;padding-top:30px;border-top:1px solid var(--line);scroll-margin-top:110px}
+.product-photos h2{font:38px/1.1 var(--serif);margin:14px 0 24px;letter-spacing:-.025em}
+.product-photos>img{display:block;object-fit:contain;aspect-ratio:auto;height:auto;max-height:660px;background:var(--soft);border-radius:var(--radius-card)}
+.product-photos>.line-link{margin:16px 0}
+.collection-sculpture{background:#e9e7df;border-radius:32px;padding:25px 4%;display:grid;grid-template-columns:.65fr 1.35fr;gap:4%;align-items:center;margin:0 0 45px}
+.collection-sculpture-copy h2{font:clamp(38px,4.5vw,70px)/.95 var(--serif);letter-spacing:-.035em;margin:22px 0}
+.collection-sculpture-copy p{font-size:12px;line-height:1.9;color:var(--muted);margin-bottom:24px}
+.collection-sculpture .form-viewer-stage{border:0;background:transparent}
+.collection-sculpture .form-viewer{margin:0}
+.collection-sculpture .form-viewer-tools{justify-content:center}
+.collection-sculpture .form-viewer-note{text-align:center}
+.collection-sculpture [data-model-photo]{display:none}
+@media(max-width:760px){
+ .detail:has(.form-viewer){display:flex;flex-direction:column;gap:26px}
+ .detail:has(.form-viewer) .detail-photo{display:contents}
+ .detail:has(.form-viewer) .detail-info{order:1}
+ .detail:has(.form-viewer) .product-photos{order:2;margin-top:15px}
+ .detail-photo>.form-viewer{margin-bottom:0}
+ .product-photos h2{font-size:34px}
+ .collection-sculpture{display:flex;flex-direction:column;padding:28px 20px;border-radius:25px;gap:20px}
+ .collection-sculpture-copy,.collection-sculpture .form-viewer{width:100%}
+ .collection-sculpture-copy h2{font-size:42px}
+}
+@media(prefers-reduced-motion:reduce){
+ .salini-arrival{display:grid;transition:opacity .15s}
+ .salini-arrival.is-open{opacity:0;clip-path:none}
+ .arrival-water{display:none}
+ .form-viewer-mount,.form-viewer.is-loading .form-viewer-poster img{transition:none}
+}
+
+/* Exact 3D forms in the catalogue; at most one live card on a narrow screen. */
+.image-wrap:has(.card-model-mount){background:#e9e7df!important;isolation:isolate}
+.card-model-mount{position:absolute;inset:0;display:block;pointer-events:none;opacity:1;z-index:1}
+.card-model-mount model-viewer{width:100%;height:100%;pointer-events:none;--progress-bar-height:0;--poster-color:transparent}
+.image-wrap.has-live-model>.card-model-mount{opacity:1}
+.image-wrap.has-live-model>img{opacity:0}
+.image-wrap:has(.card-model-mount)>img{position:relative;z-index:2;background:#e9e7df;transition:opacity .55s ease}
+@media(prefers-reduced-motion:reduce){.card-model-mount,.image-wrap:has(.card-model-mount)>img{transition:none}}
+
+.ed-product-card .image-wrap{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:var(--radius-card);margin-bottom:16px}
+.ed-product-card .image-wrap>img{height:100%;margin:0;object-fit:contain}

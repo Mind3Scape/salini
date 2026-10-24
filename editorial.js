@@ -101,14 +101,14 @@
   function productSection(record, products) {
     const associated = (record.productIds || []).map(id => products.find(p => p.id === id) || (record.relatedProducts || []).find(p => p.id === id)).filter(Boolean);
     if (!associated.length) return '';
-    return `<section class="ed-related"><div class="ed-section-head"><span class="eyebrow">Изделия в материале</span><h2>Продолжение истории</h2><p>Связи с изделиями сохранены по ссылкам оригинальной публикации.</p></div><div class="ed-product-grid">${associated.map(p => `<a class="ed-product-card" href="#/product/${encodeURIComponent(p.id)}">${photo(p.image, p.name)}<span>${esc(p.subtitle || p.category)}</span><h3>${esc(p.name)}</h3><p>${esc(p.dimensionsLabel)}</p></a>`).join('')}</div></section>`;
+    return `<section class="ed-related"><div class="ed-section-head"><span class="eyebrow">Изделия в материале</span><h2>Продолжение истории</h2><p>Связи с изделиями сохранены по ссылкам оригинальной публикации.</p></div><div class="ed-product-grid">${associated.map(p => `<a class="ed-product-card" href="#/product/${encodeURIComponent(p.id)}">${global.SaliniExperience?.hasModel(p)?`<div class="image-wrap">${global.SaliniAtelier.cardImage(p)}</div>`:photo(p.image,p.name)}<span>${esc(p.subtitle || p.category)}</span><h3>${esc(p.name)}</h3><p>${esc(p.dimensionsLabel)}</p></a>`).join('')}</div></section>`;
   }
   function detail(record, products) {
     const displayTitle = record.path === '/about' ? 'Мир Salini.' : record.title;
     const back = record.kind === 'collections' ? ['Коллекции', '/collections'] : record.kind === 'articles' ? ['Журнал', '/journal'] : record.kind === 'projects' ? ['Проекты', '/projects'] : [record.title, null];
     const subtitle = record.kind === 'collections' ? 'Коллекция Salini' : record.category || (record.kind === 'projects' ? 'Галерея проектов' : 'Мир Salini');
     const relatedCTA = record.path === '/cooperation' ? `<section class="ed-contact"><span class="eyebrow">Начать разговор</span><h2>Создадим пространство вместе</h2><p>Дизайнерам и архитекторам — профессиональная поддержка. Партнёрам — условия сотрудничества напрямую от Salini.</p><div><a class="ed-action" href="mailto:design@salini-srl.com">Написать о проекте ↗</a><a class="ed-action ed-action-light" href="mailto:info@salini-srl.com">Стать партнёром ↗</a></div></section>` : '';
-    return `<article class="ed-page ed-detail wrap" data-editorial-route="${esc(record.path)}">${breadcrumb(...back)}<header class="ed-detail-head"><span class="eyebrow">${esc(subtitle)}</span><h1>${esc(displayTitle)}</h1>${record.path === "/about" ? `<p class="ed-about-intro">${esc(record.title)}</p>` : ""}${record.publishedAt || record.author ? `<p class="ed-byline">${[record.publishedAt && date(record.publishedAt), record.author].filter(Boolean).map(esc).join(' · ')}</p>` : ''}${record.authors?.length ? `<p class="ed-byline">Дизайнер: ${record.authors.map(esc).join(', ')}</p>` : ''}</header>${record.images?.length ? `<figure class="ed-cover">${photo(record.images[0], record.title, {eager:true})}</figure>` : ''}<div class="ed-reading-layout">${sourceNote(record)}<div class="ed-prose">${renderBlocks(record, products)}</div></div>${productSection(record, products)}${relatedCTA}<a class="ed-back" href="${esc(link(back[1] || '/'))}">← ${back[1] ? 'Ко всем материалам' : 'На главную'}</a></article>`;
+    return `<article class="ed-page ed-detail wrap" data-editorial-route="${esc(record.path)}">${breadcrumb(...back)}<header class="ed-detail-head"><span class="eyebrow">${esc(subtitle)}</span><h1>${esc(displayTitle)}</h1>${record.path === "/about" ? `<p class="ed-about-intro">${esc(record.title)}</p>` : ""}${record.publishedAt || record.author ? `<p class="ed-byline">${[record.publishedAt && date(record.publishedAt), record.author].filter(Boolean).map(esc).join(' · ')}</p>` : ''}${record.authors?.length ? `<p class="ed-byline">Дизайнер: ${record.authors.map(esc).join(', ')}</p>` : ''}</header>${global.SaliniExperience?.collectionViewer(record,products)||''}${record.images?.length ? `<figure class="ed-cover">${photo(record.images[0], record.title, {eager:true})}</figure>` : ''}<div class="ed-reading-layout">${sourceNote(record)}<div class="ed-prose">${renderBlocks(record, products)}</div></div>${productSection(record, products)}${relatedCTA}<a class="ed-back" href="${esc(link(back[1] || '/'))}">← ${back[1] ? 'Ко всем материалам' : 'На главную'}</a></article>`;
   }
   const indexConfig = {
     '/collections': {key:'collections', label:'Коллекции', eyebrow:'Форма. Характер. Пространство.', title:'Одна философия.<br><em>Разные истории.</em>', text:'Авторские коллекции Salini: от первого замысла до предметов, с которыми начинается интерьер.'},
@@ -138,6 +138,10 @@
     const visible = filtered(items,q,category);
     return `<section class="ed-page ed-index wrap" data-editorial-route="${esc(path)}">${breadcrumb(conf.label)}<header class="ed-index-head"><div><span class="eyebrow">${esc(conf.eyebrow)}</span><h1>${conf.title}</h1></div><p>${esc(conf.text)}</p></header><form class="ed-filters" role="search"><label class="ed-search"><span class="sr-only">Поиск по разделу ${esc(conf.label)}</span><input type="search" name="q" placeholder="Найти историю, коллекцию, тему…" value="${esc(q)}" autocomplete="off"><span aria-hidden="true">⌕</span></label>${categories.length > 1 ? `<label class="ed-category"><span class="sr-only">Категория</span><select name="category"><option value="">Все темы</option>${categories.map(c => `<option value="${esc(c)}"${c===category?' selected':''}>${esc(c)}</option>`).join('')}</select></label>` : ''}<p class="ed-result-count" aria-live="polite">${visible.length} из ${items.length}</p></form><div class="ed-card-grid" data-editorial-results>${visible.map(r => card(r, path==='/academy')).join('')}</div><p class="ed-empty"${visible.length ? ' hidden' : ''}>Ничего не найдено. Попробуйте другую тему или сократите запрос.</p></section>`;
   }
+  function needsCatalog(path) {
+    const record=records().find(r=>r.path===pathOf(path));
+    return record?.kind==='collections'||Boolean(record?.productIds?.some(id=>global.SaliniExperience?.modelIDs.has(String(id))));
+  }
   function render(path, params, options = {}) {
     if (!data) return '<section class="ed-page wrap"><p>Материалы загружаются…</p></section>';
     const normalized = pathOf(path);
@@ -164,15 +168,15 @@
     form.addEventListener('input', update);
     form.addEventListener('change', update);
   }
-  function getPages() {
+  function getPages(options={}) {
     if (!data) return [];
     const indexes = Object.entries(indexConfig).map(([path,c]) => ({path,title:c.label + ' — Salini',description:c.text,html:render(path)}));
-    return [...indexes,...records().map(r => ({path:r.path,title:r.title + ' — Salini',description:r.description.slice(0,240),html:render(r.path)}))];
+    return [...indexes,...records().map(r => ({path:r.path,title:r.title + ' — Salini',description:r.description.slice(0,240),html:render(r.path,undefined,options)}))];
   }
   function search(q) {
     if (!data || !cleanQuery(q)) return [];
     return filtered(allRecords(),q,'').slice(0,60).map(r => ({title:r.title,href:r.videoUrl || link(r.path),excerpt:(r.description || r.category || '').slice(0,160)}));
   }
   function cleanQuery(q) { return String(q || '').trim(); }
-  global.SaliniEditorial = {load,handles,render,mount,getPages,search};
+  global.SaliniEditorial = {load,handles,needsCatalog,render,mount,getPages,search};
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -17,10 +17,11 @@ window.SaliniAtelier = (() => {
     const tones=p.presentation?.studio?.backdrop;
     return tones?`--studio-top:${esc(tones[0])};--studio-bottom:${esc(tones[1])}`:'';
   }
-  function cardImage(p) {
+  function cardImage(p,{configuration}={}) {
     const photo=p.presentation?.studio||p.image;
     if(!photo)return '<div class="no-photo"><span>salini</span><small>Фотография уточняется</small></div>';
-    return `<img src="${esc(photo.src)}" alt="${esc(p.name)}" width="${photo.width}" height="${photo.height}" loading="lazy" decoding="async">`;
+    const preview=photo.derivedFrom?.endsWith('.glb')?`<span class="card-model-mount" data-card-model="${esc(p.id)}" data-preview-variant="${esc(configuration?.variant||'')}" data-preview-ral="${esc(configuration?.ral||'')}" aria-hidden="true"></span>`:'';
+    return `<img src="${esc(photo.src)}" alt="${esc(p.name)}" width="${photo.width}" height="${photo.height}" loading="lazy" decoding="async">${preview}`;
   }
   function catalogIntro() {
     return `<header class="catalog-intro wrap"><div class="catalog-intro-copy"><div class="breadcrumb"><a href="#/">Главная</a><span>/</span><span>Каталог</span></div><span class="eyebrow">COLLEZIONI SALINI</span><h1>Форма вашего<br><em>пространства.</em></h1><p>Выразительные силуэты. Тактильные материалы.<br>Предметы, с которых начинается ваш интерьер.</p><button class="catalog-browse" data-catalog-browse>Найти свою форму <span aria-hidden="true">↓</span></button></div><a class="catalog-intro-image" href="#/collection/paola"><img src="assets/hero-paola.webp" width="2400" height="1350" alt="Paola — цвет и форма в интерьере Salini"><span><i>Коллекция</i>Paola <b aria-hidden="true">↗</b></span></a></header>`;
