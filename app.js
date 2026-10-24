@@ -259,7 +259,7 @@ function setSlide(delta) {
     "--progress",
     `${slideIndex * 33.33}%`,
   );
-  $(".hero-copy .button", hero).href = `#/collection/${slide.href.toLowerCase()}`;
+  $(".hero-copy .button", hero).href = `collection/${slide.href.toLowerCase()}/`;
   hero.setAttribute("aria-label", "Коллекция " + slide.name);
 }
 function renderCatalog(params = new URLSearchParams()) {
@@ -426,7 +426,7 @@ function renderFavorites() {
 function exportSelection() {
   const selected = data.products.filter((p) => favoriteIds.has(p.id));
   const html = `<!doctype html><html lang="ru"><meta charset="utf-8"><title>Моя подборка Salini</title><style>body{font:15px/1.7 Arial,sans-serif;max-width:850px;margin:60px auto;padding:20px;color:#2b3229}h1{font:42px Georgia}article{border-top:1px solid #ddd;padding:25px 0}h2{font:30px Georgia;margin:0}a{color:#53614d}small{color:#666}@media print{article{break-inside:avoid}}</style><h1>Salini · Моя подборка</h1><p>Коллекция идей для вашего пространства.</p>${selected.map((p) => `<article><h2>${esc(p.name)}</h2><p>${esc(p.subtitle)} · ${esc(p.dimensionsLabel)}<br>${esc(p.materials.join(", "))}<br>Артикул: ${esc((()=>{const c=savedConfiguration(p),v=p.variants.find(v=>v.id===c?.variant);return c?.ral?v?.customColourSku||'по запросу':v?.sku||p.article;})())}<br>${esc((()=>{const c=savedConfiguration(p);return c?(p.variants.find(v=>v.id===c.variant)?.title||'')+' · '+(c.ral?'RAL '+c.ral:'Базовый белый'):'';})())}</p><a href="${esc(publicUrl(configurationURL(p,savedConfiguration(p))))}">Открыть выбранное исполнение ↗︎</a></article>`).join("")}<small>Подборка составлена на основе данных каталога от 06.10.2026. Параметры необходимо уточнить перед заказом. Документ можно сохранить в PDF через печать браузера.</small></html>`;
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const blob = new Blob([window.SaliniIcons.html(html)], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
@@ -572,6 +572,7 @@ async function ensureCatalog() {
   return catalogRequest;
 }
 function decorateLinks(root = main) {
+  window.SaliniIcons.enhance(root);
   $$('a[href^="#/"]',root).forEach(a => {a.href = routeURL(a.getAttribute('href'));});
 }
 // Scroll belongs to a history entry: two visits to the same URL can have different positions.
@@ -816,6 +817,7 @@ window.addEventListener('popstate',()=>{
 window.addEventListener('resize', () => {
   if (!$('#mobile-menu').hidden) $('#mobile-menu').style.top = $('.header').getBoundingClientRect().bottom + 'px';
 });
+window.SaliniIcons.mount();
 decorateLinks(document);
 syncFavorites();
 route({restoreScroll:true});

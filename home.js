@@ -50,13 +50,10 @@ window.SaliniHome = (() => {
       });
     }));
     const section=root.querySelector('.essence-section');if(!section)return;
-    const toggle=section.querySelector('[data-motion-toggle]');
-    toggle.hidden=true;
-    let paused=false,inView=false;
-    const update=()=>{section.classList.toggle('is-visible',inView&&!document.hidden);section.classList.toggle('is-paused',paused);};
+    let inView=false;
+    const update=()=>section.classList.toggle('is-visible',inView&&!document.hidden);
     if('IntersectionObserver'in window){observer=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;update();},{threshold:.08});observer.observe(section);}else{inView=true;update();}
     visibilityListener=update;document.addEventListener('visibilitychange',update);
-    listen(toggle,'click',()=>{paused=!paused;toggle.setAttribute('aria-pressed',String(paused));toggle.innerHTML=paused?'Включить движение <span aria-hidden="true">▷</span>':'Остановить движение <span aria-hidden="true">Ⅱ</span>';update();});
     section.querySelectorAll('[data-inspect]').forEach(button=>listen(button,'click',()=>{
       const card=button.closest('.essence-card'),open=button.getAttribute('aria-pressed')!=='true';
       button.setAttribute('aria-pressed',String(open));

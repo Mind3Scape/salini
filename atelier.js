@@ -36,35 +36,36 @@ window.SaliniAtelier = (() => {
   }
   function cinema(initial='ninfea') {
     const story=stories.find(s=>s[0]===initial)||stories[0];
-    return `<section class="atelier-cinema wrap" data-cinema aria-label="Живые истории коллекций"><div class="water-copy"><span class="eyebrow">L’anima dell’acqua · Живые коллекции</span><h2>Вода.<br> <em>Форма. Чувство.</em></h2><p>Четыре водные истории. Движение света, мягкость линий и характер каждой коллекции.</p><div class="water-choices" role="group" aria-label="Выбрать историю коллекции">${stories.map(s=>`<button type="button" data-cinema-story="${s[0]}" aria-pressed="${s[0]===story[0]}">${s[1]}</button>`).join('')}</div><div class="water-caption"><h3 data-cinema-headline>${story[2]}</h3><p data-water-caption>${story[3]}</p></div><a class="line-link" data-cinema-link href="#/collection/${story[0]}">Исследовать ${story[1]} ↗</a><small>Художественная история коллекции. Фотографии и характеристики изделий — в каталоге.</small></div><div class="water-stage"><video data-cinema-video muted loop playsinline preload="none" poster="assets/cinema-${story[0]}.webp" aria-label="Водная история ${story[1]}"></video><button type="button" class="water-toggle" data-water-toggle aria-pressed="false">Включить движение ▷</button><span class="water-name" aria-hidden="true">${story[1]}</span></div></section>`;
+    return `<section class="atelier-cinema wrap" data-cinema aria-label="Живые истории коллекций"><div class="water-copy"><span class="eyebrow">L’anima dell’acqua · Живые коллекции</span><h2>Вода.<br> <em>Форма. Чувство.</em></h2><p>Четыре водные истории. Движение света, мягкость линий и характер каждой коллекции.</p><div class="water-choices" role="group" aria-label="Выбрать историю коллекции">${stories.map(s=>`<button type="button" data-cinema-story="${s[0]}" aria-pressed="${s[0]===story[0]}">${s[1]}</button>`).join('')}</div><div class="water-caption"><h3 data-cinema-headline>${story[2]}</h3><p data-water-caption>${story[3]}</p></div><a class="line-link" data-cinema-link href="#/collection/${story[0]}">Исследовать ${story[1]} ↗</a><small>Художественная история коллекции. Фотографии и характеристики изделий — в каталоге.</small></div><div class="water-stage"><img class="water-poster" data-cinema-poster src="assets/cinema-${story[0]}.webp" alt="" width="720" height="900" loading="lazy"><video data-cinema-video muted loop playsinline preload="none" poster="assets/cinema-${story[0]}.webp" aria-label="Водная история ${story[1]}"></video><span class="water-name" aria-hidden="true">${story[1]}</span></div></section>`;
   }
   function mountCinema(root) {
     root.querySelectorAll('[data-cinema]').forEach(section=>{
-      const video=section.querySelector('video'),button=section.querySelector('[data-water-toggle]');
+      const video=section.querySelector('video'),poster=section.querySelector('[data-cinema-poster]');
       const reduce=matchMedia('(prefers-reduced-motion: reduce)');
       let chosen=section.querySelector('[data-cinema-story][aria-pressed="true"]').dataset.cinemaStory;
-      let visible=false,wantsMotion=!reduce.matches&&!navigator.connection?.saveData,dead=false;
-      function pause(){video.pause();button.hidden=false;button.textContent='Включить движение ▷';button.setAttribute('aria-pressed','false');}
+      let visible=false,dead=false,generation=0;
+      const allowed=()=>visible&&!document.hidden&&!reduce.matches&&!navigator.connection?.saveData;
       function sync(){
         if(dead)return;
-        if(!visible||document.hidden||!wantsMotion){pause();return;}
-        if(!video.getAttribute('src')) video.src=`assets/cinema-${chosen}.mp4`;
+        if(!allowed()){video.pause();return;}
+        if(!video.getAttribute('src'))video.src=`assets/cinema-${chosen}.mp4`;
         video.muted=true;
-        video.play().then(()=>{if(dead||!visible||!wantsMotion||document.hidden){pause();return;}button.hidden=true;button.setAttribute('aria-pressed','true');}).catch(error=>{if(error.name!=='AbortError')pause();});
+        const request=generation;
+        video.play().then(()=>{if(request!==generation)return;if(dead||!allowed()){video.pause();return;}video.classList.add('is-ready');}).catch(()=>{});
       }
-      const io=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync();},{threshold:.35});io.observe(section.querySelector('.water-stage'));
-      button.addEventListener('click',()=>{wantsMotion=!wantsMotion;sync();});
+      const retry=()=>{if(video.paused&&allowed())sync();};
+      const io=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync();},{threshold:.2});io.observe(section.querySelector('.water-stage'));
       section.querySelectorAll('[data-cinema-story]').forEach(b=>b.addEventListener('click',()=>{
         if(chosen===b.dataset.cinemaStory)return;
-        pause();video.removeAttribute('src');video.load();chosen=b.dataset.cinemaStory;
-        const s=stories.find(s=>s[0]===chosen);video.poster=`assets/cinema-${chosen}.webp`;video.setAttribute('aria-label','Водная история '+s[1]);
+        generation++;video.pause();video.classList.remove('is-ready');video.removeAttribute('src');video.load();chosen=b.dataset.cinemaStory;
+        const s=stories.find(s=>s[0]===chosen);poster.src=video.poster=`assets/cinema-${chosen}.webp`;video.setAttribute('aria-label','Водная история '+s[1]);
         section.querySelectorAll('[data-cinema-story]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
         section.querySelector('[data-cinema-headline]').textContent=s[2];section.querySelector('[data-water-caption]').textContent=s[3];section.querySelector('.water-name').textContent=s[1];
-        const link=section.querySelector('[data-cinema-link]');link.href=s[0]==='aria'?'#/catalog?collection=Aria':'#/collection/'+s[0];link.textContent='Исследовать '+s[1]+' ↗';sync();
+        const link=section.querySelector('[data-cinema-link]');link.href=s[0]==='aria'?'catalog/?collection=Aria':'collection/'+s[0]+'/';link.textContent='Исследовать '+s[1]+' ↗';sync();
       }));
-      const change=()=>{if(reduce.matches)wantsMotion=false;sync();};
-      document.addEventListener('visibilitychange',sync);reduce.addEventListener('change',change);
-      cleanups.push(()=>{dead=true;io.disconnect();document.removeEventListener('visibilitychange',sync);reduce.removeEventListener('change',change);pause();video.removeAttribute('src');video.load();});
+      document.addEventListener('visibilitychange',sync);reduce.addEventListener('change',sync);
+      document.addEventListener('touchend',retry,{passive:true});document.addEventListener('click',retry);
+      cleanups.push(()=>{dead=true;generation++;io.disconnect();document.removeEventListener('visibilitychange',sync);reduce.removeEventListener('change',sync);document.removeEventListener('touchend',retry);document.removeEventListener('click',retry);video.pause();video.removeAttribute('src');video.load();});
     });
   }
   function dispose(){cleanups.forEach(f=>f());cleanups=[];}
