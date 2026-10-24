@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-route="/app" data-release="639b2cf89a85">
+<html lang="ru" data-route="/app" data-release="5469c0ca0f13">
   <head>
     <meta charset="utf-8">
     <base href="../">
@@ -26,12 +26,12 @@
     <link rel="stylesheet" href="style.css?v=855b22c6" />
     <link rel="stylesheet" href="tokens.css?v=362ae2cf" />
 
-    <link rel="stylesheet" href="home.css?v=739448c4">
+    <link rel="stylesheet" href="home.css?v=587e269a">
     <link rel="stylesheet" href="editorial.css?v=f0c39855">
     <link rel="stylesheet" href="support.css?v=1266f9c7">
     <link rel="stylesheet" href="resources.css?v=cd3f9b75">
     <script src="icons.js?v=cf5d5236" defer></script>
-    <script src="home.js?v=5823d5c6" defer></script>
+    <script src="home.js?v=b71dccfa" defer></script>
     <script src="editorial.js?v=287573f7" defer></script>
     <script src="support.js?v=fc29d766" defer></script>
     <script src="resources.js?v=ed851f53" defer></script>
@@ -134,9 +134,14 @@
       <div class="essence-stage" role="group" aria-label="Иллюстрация S-Stone: минеральные фрагменты и срез однородного материала">
         <span class="essence-watermark" aria-hidden="true">S–Stone</span>
         <div class="essence-original"><img class="mineral mineral-small" src="assets/essence-original-stone-1.webp" alt="" width="433" height="357" loading="lazy"><img class="mineral mineral-large" src="assets/essence-original-stone-2.webp" alt="" width="445" height="493" loading="lazy"><img class="material-cutaway" src="assets/essence-stone-cutaway-v4.webp" alt="" width="767" height="413" loading="lazy"></div>
-        <div class="essence-inside" hidden><img class="mineral-mass" src="assets/essence-stone-mass.webp" alt="" width="1200" height="1200" loading="lazy"><img class="mineral-fragment" src="assets/essence-stone-fragment.webp" alt="" width="1200" height="1200" loading="lazy"></div>
+        <div class="essence-inside" id="essence-inside-stone" aria-hidden="true" hidden>
+          <img class="essence-macro-start" src="assets/essence-stone-start-v1.webp" alt="" width="1448" height="1086" loading="lazy">
+          <video class="essence-film" data-src="assets/essence-stone-macro-v1.mp4" data-mobile-src="assets/essence-stone-macro-mobile-v1.mp4" muted playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+          <img class="essence-macro-end" src="assets/essence-stone-end-v1.webp" alt="Художественный макросрез S-Stone: однородная минеральная структура" width="1448" height="1086" loading="lazy">
+          <div class="essence-macro-caption"><span>Однородная структура</span><small>Матовый материал по всей толщине</small></div>
+        </div>
         <span class="essence-annotation">Однородная структура <i></i></span>
-        <button class="essence-inspect" data-inspect="stone" aria-pressed="false"><span aria-hidden="true">+</span> Камень изнутри</button>
+        <button class="essence-inspect" data-inspect="stone" aria-pressed="false" aria-expanded="false" aria-controls="essence-inside-stone"><span aria-hidden="true">+</span> Камень изнутри</button>
       </div>
       <div class="essence-card-copy"><div class="essence-name"><h3>S-Stone</h3><span>Бархатистый. Матовый.</span></div><p>Минералы на основе бокситов, связующие смолы и пигменты. Однородный материал без дополнительного покрытия — мягкий свет и спокойная тактильность.</p><a class="line-link" href="materials/?material=stone">О материале <span><svg class="salini-arrow" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:-.14em;flex-shrink:0"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
     </article>
@@ -144,9 +149,14 @@
       <div class="essence-stage" role="group" aria-label="Иллюстрация S-Sense: минеральные фрагменты и срез материала с защитным покрытием">
         <span class="essence-watermark" aria-hidden="true">S–Sense</span>
         <div class="essence-original"><img class="mineral mineral-small" src="assets/essence-original-sense-1.webp" alt="" width="433" height="357" loading="lazy"><img class="mineral mineral-large" src="assets/essence-original-sense-2.webp" alt="" width="445" height="493" loading="lazy"><img class="material-cutaway" src="assets/essence-sense-cutaway-v4.webp" alt="" width="767" height="413" loading="lazy"></div>
-        <div class="essence-inside" hidden><img class="mineral-mass" src="assets/essence-sense-core-matte.webp" alt="" width="1200" height="1200" loading="lazy"><img class="mineral-fragment" src="assets/essence-sense-cap-matte.webp" alt="" width="1200" height="1200" loading="lazy"></div>
+        <div class="essence-inside" id="essence-inside-sense" aria-hidden="true" hidden>
+          <img class="essence-macro-start" src="assets/essence-sense-start-v1.webp" alt="" width="1448" height="1086" loading="lazy">
+          <video class="essence-film" data-src="assets/essence-sense-macro-v1.mp4" data-mobile-src="assets/essence-sense-macro-mobile-v1.mp4" muted playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+          <img class="essence-macro-end" src="assets/essence-sense-end-v1.webp" alt="Художественный макросрез S-Sense: тонкое покрытие Gelcoat на минеральной основе" width="1448" height="1086" loading="lazy">
+          <div class="essence-macro-caption"><span>Защитный слой Gelcoat</span><small>Минеральная основа. Гладкое покрытие</small></div>
+        </div>
         <span class="essence-annotation">Защитный слой Gelcoat <i></i></span>
-        <button class="essence-inspect" data-inspect="sense" aria-pressed="false"><span aria-hidden="true">+</span> Камень изнутри</button>
+        <button class="essence-inspect" data-inspect="sense" aria-pressed="false" aria-expanded="false" aria-controls="essence-inside-sense"><span aria-hidden="true">+</span> Камень изнутри</button>
       </div>
       <div class="essence-card-copy"><div class="essence-name"><h3>S-Sense</h3><span>Глянцевый или матовый.</span></div><p>Очищенная мраморная мука и связующие смолы под защитным слоем Gelcoat. Выразительные отражения или деликатная матовая поверхность.</p><a class="line-link" href="materials/?material=sense">О материале <span><svg class="salini-arrow" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:inline-block;vertical-align:-.14em;flex-shrink:0"><path d="M5 19 19 5M5 5h14v14"/></svg></span></a></div>
     </article>
