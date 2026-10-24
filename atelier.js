@@ -13,6 +13,21 @@ window.SaliniAtelier = (() => {
   const isNew = p => launched.includes(String(p.id));
   const allowsRAL = v => Boolean(v && (v.customColourSku || ['sStone','sSense'].includes(v.material)));
   const colourable = p => p.variants.some(allowsRAL);
+  function cardStyle(p) {
+    const tones=p.presentation?.studio?.backdrop;
+    return tones?`--studio-top:${esc(tones[0])};--studio-bottom:${esc(tones[1])}`:'';
+  }
+  function cardImage(p) {
+    const photo=p.presentation?.studio||p.image;
+    if(!photo)return '<div class="no-photo"><span>salini</span><small>Фотография уточняется</small></div>';
+    return `<img src="${esc(photo.src)}" alt="${esc(p.name)}" width="${photo.width}" height="${photo.height}" loading="lazy" decoding="async">`;
+  }
+  function catalogIntro() {
+    return `<header class="catalog-intro wrap"><div class="catalog-intro-copy"><div class="breadcrumb"><a href="#/">Главная</a><span>/</span><span>Каталог</span></div><span class="eyebrow">COLLEZIONI SALINI</span><h1>Форма вашего<br><em>пространства.</em></h1><p>Выразительные силуэты. Тактильные материалы.<br>Предметы, с которых начинается ваш интерьер.</p><button class="catalog-browse" data-catalog-browse>Найти свою форму <span aria-hidden="true">↓</span></button></div><a class="catalog-intro-image" href="#/collection/paola"><img src="assets/hero-paola.webp" width="2400" height="1350" alt="Paola — цвет и форма в интерьере Salini"><span><i>Коллекция</i>Paola <b aria-hidden="true">↗</b></span></a></header>`;
+  }
+  function catalogStory() {
+    return `<aside class="catalog-story"><img src="assets/ninfea.webp" alt="Ninfea в интерьере" width="1600" height="900" loading="lazy"><div><span class="eyebrow">СВОЙ ХАРАКТЕР. СВОЙ РИТМ.</span><h2>Предмет, который<br><em>меняет ощущение.</em></h2><a class="line-link" href="#/collection/ninfea">Открыть Ninfea <span>↗</span></a></div></aside>`;
+  }
   function cardDetails(p) {
     return `<div class="card-finishes"><span>${esc(p.materials.join(' / '))}</span>${colourable(p)?`<a class="card-colour-link" href="#/product/${encodeURIComponent(p.id)}?choose=colour" aria-label="Выбрать цвет ${esc(p.name)}"><i style="--swatch:#F1F0EA"></i><i style="--swatch:#C6846D"></i><i style="--swatch:#7AADAC"></i><span>Цвет ↗</span></a>`:''}</div>`;
   }
@@ -29,13 +44,13 @@ window.SaliniAtelier = (() => {
       const reduce=matchMedia('(prefers-reduced-motion: reduce)');
       let chosen=section.querySelector('[data-cinema-story][aria-pressed="true"]').dataset.cinemaStory;
       let visible=false,wantsMotion=!reduce.matches&&!navigator.connection?.saveData,dead=false;
-      function pause(){video.pause();button.textContent='Включить движение ▷';button.setAttribute('aria-pressed','false');}
+      function pause(){video.pause();button.hidden=false;button.textContent='Включить движение ▷';button.setAttribute('aria-pressed','false');}
       function sync(){
         if(dead)return;
         if(!visible||document.hidden||!wantsMotion){pause();return;}
         if(!video.getAttribute('src')) video.src=`assets/cinema-${chosen}.mp4`;
         video.muted=true;
-        video.play().then(()=>{if(dead||!visible||!wantsMotion||document.hidden){pause();return;}button.textContent='Остановить движение Ⅱ';button.setAttribute('aria-pressed','true');}).catch(error=>{if(error.name!=='AbortError')pause();});
+        video.play().then(()=>{if(dead||!visible||!wantsMotion||document.hidden){pause();return;}button.hidden=true;button.setAttribute('aria-pressed','true');}).catch(error=>{if(error.name!=='AbortError')pause();});
       }
       const io=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;sync();},{threshold:.35});io.observe(section.querySelector('.water-stage'));
       button.addEventListener('click',()=>{wantsMotion=!wantsMotion;sync();});
@@ -53,5 +68,5 @@ window.SaliniAtelier = (() => {
     });
   }
   function dispose(){cleanups.forEach(f=>f());cleanups=[];}
-  return {isNew,launched,colours,allowsRAL,colourable,cardDetails,newSection,cinema,mountCinema,dispose};
+  return {isNew,launched,colours,cardStyle,cardImage,catalogIntro,catalogStory,allowsRAL,colourable,cardDetails,newSection,cinema,mountCinema,dispose};
 })();

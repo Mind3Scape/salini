@@ -3,7 +3,7 @@ window.SaliniExperience = (() => {
   const modelIDs = new Set(['1078','1120','1139','1151','1167','1170','1361','1364','1382','1452','1456','1773','1775']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   let cleanup = [], library;
-  const filmVersion = '0190cf9b224b';
+  const filmVersion = 'fdfab7d3a96d';
   const hasModel = p => modelIDs.has(String(p.id));
   function picture(name,alt,cls='') {
     return `<picture class="${cls}"><source media="(max-width:700px)" srcset="assets/${name}-mobile.webp"><img src="assets/${name}.webp" alt="${esc(alt)}" width="1672" height="941" decoding="async"></picture>`;
@@ -11,9 +11,28 @@ window.SaliniExperience = (() => {
   function portal() {
     return `<section class="experience-portal wrap" aria-labelledby="experience-invite"><a class="experience-portal-scene" href="#/experience">${picture('story-water','Вода и камень в воображаемом пространстве Salini')}<span class="portal-ring" aria-hidden="true">↗</span><span class="portal-caption">SALINI · ВНУТРИ ВОДНОГО ПАВИЛЬОНА</span></a><div class="experience-portal-copy"><span class="eyebrow">Приглашение почувствовать</span><h2 id="experience-invite">Вода обретает<br><em>форму.</em></h2><p>От движения воды — к личному пространству тишины. Войдите в мир Salini.</p><a class="line-link" href="#/experience">Начать путешествие <span>↗</span></a></div></section>`;
   }
+  function waterPortal() {
+    return `<section class="water-portal wrap" aria-labelledby="water-portal-title"><a class="water-portal-scene" href="#/experience" data-portal-enter><picture><source media="(max-aspect-ratio:4/5)" srcset="assets/journey-threshold-portrait.webp"><img src="assets/journey-threshold.webp" alt="Водный павильон Salini" width="1920" height="1080" loading="lazy"></picture><video data-portal-film muted loop playsinline preload="none" aria-hidden="true"></video><span class="water-portal-shade"></span><div class="water-portal-copy"><span class="eyebrow">L’ANIMA DELL’ACQUA · ИНТЕРАКТИВНАЯ ИСТОРИЯ</span><h2 id="water-portal-title">У воды<br>есть <em>свой мир.</em></h2><p>Войдите в пространство Salini.<br>От стихии — к вашей форме.</p><span class="water-portal-cta">Исследовать мир Salini <i aria-hidden="true">↗</i></span></div><span class="water-portal-edition">ACQUA / MATERIA / FORMA</span></a></section>`;
+  }
+  function mountPortal(root) {
+    const video=root.querySelector('[data-portal-film]');if(!video)return;
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)');let visible=false,dead=false;
+    const sync=()=>{
+      if(dead||!visible||document.hidden||reduce.matches||navigator.connection?.saveData){video.pause();return;}
+      if(!video.getAttribute('src'))video.src=new URL(`assets/journey-threshold-ambient${matchMedia('(max-aspect-ratio:4/5)').matches?'-portrait':''}.mp4`,document.baseURI).href;
+      video.play().then(()=>{if(dead||!visible||document.hidden)video.pause();else video.classList.add('is-ready');}).catch(()=>video.classList.remove('is-ready'));
+    };
+    const io=new IntersectionObserver(e=>{visible=e[0].isIntersecting;sync();},{threshold:.2});io.observe(video);
+    document.addEventListener('visibilitychange',sync);reduce.addEventListener('change',sync);
+    cleanup.push(()=>{dead=true;io.disconnect();document.removeEventListener('visibilitychange',sync);reduce.removeEventListener('change',sync);video.pause();video.removeAttribute('src');video.load();});
+  }
+  function roomGallery(p) {
+    const photos=p.presentation?.interiors?.length?p.presentation.interiors:p.gallery;
+    return `<div class="story-gallery-heading"><div><span class="eyebrow">${esc(p.collection||p.name)} · В ИНТЕРЬЕРЕ</span><h3>Форма. Свет.<br><em>Ваше пространство.</em></h3></div><p>Фотографии Salini.<br>Разные оттенки и характеры одного предмета.</p></div><div class="story-gallery-grid">${photos.map((photo,i)=>`<a href="${esc(photo.src)}" target="_blank" rel="noopener" aria-label="Открыть фотографию ${esc(p.name)}, ${i+1}"><img src="${esc(photo.src)}" width="${photo.width}" height="${photo.height}" alt="${esc(p.name)} — интерьерная фотография Salini ${i+1}" loading="lazy" decoding="async"><span>${String(i+1).padStart(2,'0')} / ${esc(p.collection||p.name)} <i aria-hidden="true">↗</i></span></a>`).join('')}</div>`;
+  }
   function viewer(p, {large=false}={}) {
     if(!hasModel(p))return '';
-    return `<section class="form-viewer ${large?'form-viewer-large':''}" data-form-viewer="${esc(p.id)}" aria-label="3D ${esc(p.name)}"><div class="form-viewer-stage"><div class="form-viewer-poster">${p.image?`<img src="${esc(p.image.src)}" alt="${esc(p.name)} — официальная фотография" width="${p.image.width}" height="${p.image.height}" loading="lazy">`:''}<button class="button button-dark" data-load-model>Рассмотреть в 3D <span aria-hidden="true">↗</span></button></div><div class="form-viewer-mount"></div><span class="form-viewer-status" role="status"></span></div><div class="form-viewer-tools" hidden><div class="form-views" role="group" aria-label="Ракурс модели"><button data-model-view="form" aria-pressed="true">Объём</button><button data-model-view="top" aria-pressed="false">Сверху</button><button data-model-view="detail" aria-pressed="false">Ближе</button><button data-model-rotate aria-pressed="false">Вращение</button></div><button data-model-photo>К фото</button></div><p class="form-viewer-note">Точная форма из 3D-модели Salini. Потяните для поворота. Цвет и блеск на экране — приближение.</p></section>`;
+    return `<section class="form-viewer ${large?'form-viewer-large':''}" data-form-viewer="${esc(p.id)}" ${large?'data-auto-model="true"':''} aria-label="3D ${esc(p.name)}"><div class="form-viewer-stage"><div class="form-viewer-poster">${p.image?`<img src="${esc(p.image.src)}" alt="${esc(p.name)} — официальная фотография" width="${p.image.width}" height="${p.image.height}" loading="lazy">`:''}<button class="button button-dark" data-load-model>Рассмотреть в 3D <span aria-hidden="true">↗</span></button></div><div class="form-viewer-mount"></div><span class="form-viewer-status" role="status"></span></div><div class="form-viewer-tools" hidden><div class="form-views" role="group" aria-label="Ракурс модели"><button data-model-view="form" aria-pressed="true">Объём</button><button data-model-view="top" aria-pressed="false">Сверху</button><button data-model-view="detail" aria-pressed="false">Ближе</button><button data-model-rotate aria-pressed="false">Вращение</button></div><button data-model-photo>К фото</button></div><p class="form-viewer-note">Точная форма из 3D-модели Salini. Потяните для поворота. Цвет и блеск на экране — приближение.</p></section>`;
   }
   function waterChapter() {
     return `<section class="water-fill water-journey cinema-journey" id="water-fill" aria-labelledby="water-title"><div class="water-fill-stage">
@@ -26,7 +45,7 @@ window.SaliniExperience = (() => {
         <div data-film-copy="passage" class="journey-copy journey-passage" aria-hidden="true" inert><span class="eyebrow">02 / ВНУТРИ ПРОСТРАНСТВА</span><h2>Внутри<br><em>тишины.</em></h2></div>
         <div data-film-copy="sanctuary" class="journey-copy journey-last" aria-hidden="true" inert><span class="eyebrow">03 / LUCE</span><h2>Течение<br>становится<br><em>тишиной.</em></h2><p>Форма вашего<br>личного пространства.</p><button class="journey-start" data-chapter="form">Рассмотреть точную форму <span aria-hidden="true">↗</span></button></div>
       </div>
-      <div class="journey-bottom"><div class="journey-route" role="group" aria-label="Сцены путешествия"><button data-film-chapter="threshold" aria-pressed="true"><span>01</span> Порог</button><i></i><button data-film-chapter="travel" aria-pressed="false"><span>02</span> Проход</button><i></i><button data-film-chapter="sanctuary" aria-pressed="false"><span>03</span> Luce</button></div><div class="journey-track" aria-hidden="true"><i></i></div><div class="journey-navigation"><span class="journey-scroll-hint">ПРОКРУЧИВАЙТЕ — ВЫ УПРАВЛЯЕТЕ ДВИЖЕНИЕМ</span><button data-film-pause aria-pressed="false" hidden>Пауза</button><button data-film-replay>К началу</button><a href="experience/#form" data-chapter="form">К коллекции ↗</a></div></div>
+      <div class="journey-bottom"><div class="journey-route" role="group" aria-label="Сцены путешествия"><button data-film-chapter="threshold" aria-pressed="true"><span>01</span> Порог</button><i></i><button data-film-chapter="travel" aria-pressed="false"><span>02</span> Проход</button><i></i><button data-film-chapter="sanctuary" aria-pressed="false"><span>03</span> Luce</button></div><div class="journey-track" aria-hidden="true"><i></i></div><div class="journey-navigation"><span class="journey-scroll-hint">ЛИСТАЙТЕ ВПЕРЁД. ВОЗВРАЩАЙТЕСЬ НАЗАД.</span><button data-film-pause aria-pressed="false" hidden>Пауза</button><button data-film-replay>К началу</button><a href="experience/#form" data-chapter="form">К коллекции ↗</a></div></div>
       <div class="journey-loading" role="status"><i aria-hidden="true"></i><span>Открываем пространство</span></div>
       <div class="journey-error"><p data-water-status role="status"></p><button data-film-retry>Смотреть ↗</button></div>
       <noscript><style>.water-journey{height:100svh}.water-fill-stage{position:relative}.journey-start,.journey-route,.journey-navigation button{display:none}</style><p class="journey-no-script">Статичные сцены и коллекция доступны ниже.</p></noscript>
@@ -34,7 +53,7 @@ window.SaliniExperience = (() => {
   }
   function render(products) {
     const form = products.find(p=>p.id==='1364');
-    return `<article class="water-experience">${waterChapter(form)}<section class="experience-form" id="form"><div class="wrap"><div class="experience-form-title"><div><span class="eyebrow">04 / ВАШЕ ПРИКОСНОВЕНИЕ</span><h2>От образа —<br><em>к вашей форме.</em></h2></div><p>Теперь предмет в ваших руках. Поверните точную модель Salini, выберите оттенок и сохраните своё исполнение.</p></div><div class="experience-form-layout"><div data-story-viewer>${viewer(form,{large:true})}</div><div class="experience-form-controls"><span class="eyebrow">СКУЛЬПТУРЫ ДЛЯ ЖИЗНИ</span><div class="story-form-choices" role="group" aria-label="Выбрать 3D-форму">${[['1361','Ninfea'],['1120','Greca'],['1364','Luce'],['1139','Noemi']].map(([id,name])=>`<button data-story-form="${id}" aria-pressed="${id===form.id}">${name}<span>↗</span></button>`).join('')}</div><div class="story-colours" role="group" aria-label="Оттенок 3D-формы">${[['','Молочный белый','#F1F0EA'],['3012','Тёплая глина','#C6846D'],['6034','Вода','#7AADAC'],['6005','Глубокий зелёный','#114232']].map(([code,title,hex])=>`<button class="colour-orb" data-story-ral="${code}" aria-label="${title}${code?' · RAL '+code:''}" aria-pressed="${!code}"><i style="--swatch:${hex}"></i></button>`).join('')}</div><p data-story-colour-label>Базовый белый</p><a class="button button-dark" data-story-product href="#/product/${form.id}">Выбрать Luce <span>↗</span></a><p class="small-note">Официальная геометрия изделия. Выбранный оттенок переносится в карточку; точный цвет подтверждают по физическому образцу.</p></div></div></div></section><section class="journey-afterword wrap" aria-label="Атмосфера воды и камня"><a href="#/materials">${picture('story-mineral','Крупный план воды на минеральной поверхности')}<span>Текучая. Тактильная.<br><em>Вечная в ощущении.</em><small>S-Stone и S-Sense ↗</small></span></a><a href="#/projects">${picture('story-water','Вода и камень в воображаемом пространстве Salini')}<span>Предмет обретает<br><em>свой мир.</em><small>Галерея интерьеров ↗</small></span></a></section><section class="experience-ritual wrap" id="ritual"><span class="eyebrow">04 / ВАШЕ ПРОСТРАНСТВО</span><h2>Форма становится<br><em>чувством.</em></h2><p class="experience-ritual-lead">Salini соединяет итальянскую эстетику, авторский дизайн и собственное производство в России. За каждой формой — материал, технология минерального литья и мастерство людей.</p><div class="experience-ritual-links"><a href="#/about"><span>От замысла к предмету</span><strong>История Salini</strong><span aria-hidden="true">↗</span></a><a href="#/projects"><span>Предмет обретает дом</span><strong>Интерьеры</strong><span aria-hidden="true">↗</span></a><a href="#/catalog"><span>Продолжите свою историю</span><strong>Найти форму</strong><span aria-hidden="true">↗</span></a></div><p class="experience-credit">Пространства воды и камня — художественные образы, созданные для этой истории. 3D-формы — модели Salini. История бренда и сведения о материалах — по официальным источникам.</p></section></article>`;
+    return `<article class="water-experience">${waterChapter(form)}<section class="experience-form" id="form"><div class="wrap"><div class="experience-form-title"><div><span class="eyebrow">04 / ВАШЕ ПРИКОСНОВЕНИЕ</span><h2>От образа —<br><em>к вашей форме.</em></h2></div><p>Теперь предмет в ваших руках. Поверните точную модель Salini, выберите оттенок и сохраните своё исполнение.</p></div><div class="experience-form-layout"><div data-story-viewer>${viewer(form,{large:true})}</div><div class="experience-form-controls"><span class="eyebrow">СКУЛЬПТУРЫ ДЛЯ ЖИЗНИ</span><div class="story-form-choices" role="group" aria-label="Выбрать 3D-форму">${[['1361','Ninfea'],['1120','Greca'],['1364','Luce'],['1139','Noemi']].map(([id,name])=>`<button data-story-form="${id}" aria-pressed="${id===form.id}">${name}<span>↗</span></button>`).join('')}</div><div class="story-colours" role="group" aria-label="Оттенок 3D-формы">${[['','Молочный белый'],['3012','Тёплая глина'],['6034','Вода'],['6005','Глубокий зелёный']].map(([code,title])=>`<button class="colour-orb" data-story-ral="${code}" aria-label="${title}${code?' · RAL '+code:''}" aria-pressed="${!code}"><i style="--swatch:${window.SaliniAtelier.colours.find(c=>c[0]===code)?.[2]||'#F1F0EA'}"></i></button>`).join('')}</div><p data-story-colour-label>Базовый белый</p><a class="button button-dark" data-story-product href="#/product/${form.id}">Выбрать Luce <span>↗</span></a><p class="small-note">Официальная геометрия изделия. Выбранный оттенок переносится в карточку; точный цвет подтверждают по физическому образцу.</p></div></div><section class="story-gallery" data-story-gallery aria-label="Фотографии выбранной модели">${roomGallery(form)}</section></div></section><section class="journey-afterword wrap" aria-label="Атмосфера воды и камня"><a href="#/materials">${picture('story-mineral','Крупный план воды на минеральной поверхности')}<span>Текучая. Тактильная.<br><em>Вечная в ощущении.</em><small>S-Stone и S-Sense ↗</small></span></a><a href="#/projects">${picture('story-water','Вода и камень в воображаемом пространстве Salini')}<span>Предмет обретает<br><em>свой мир.</em><small>Галерея интерьеров ↗</small></span></a></section><section class="experience-ritual wrap" id="ritual"><span class="eyebrow">04 / ВАШЕ ПРОСТРАНСТВО</span><h2>Форма становится<br><em>чувством.</em></h2><p class="experience-ritual-lead">Salini соединяет итальянскую эстетику, авторский дизайн и собственное производство в России. За каждой формой — материал, технология минерального литья и мастерство людей.</p><div class="experience-ritual-links"><a href="#/about"><span>От замысла к предмету</span><strong>История Salini</strong><span aria-hidden="true">↗</span></a><a href="#/projects"><span>Предмет обретает дом</span><strong>Интерьеры</strong><span aria-hidden="true">↗</span></a><a href="#/catalog"><span>Продолжите свою историю</span><strong>Найти форму</strong><span aria-hidden="true">↗</span></a></div><p class="experience-credit">Пространства воды и камня — художественные образы, созданные для этой истории. 3D-формы — модели Salini. История бренда и сведения о материалах — по официальным источникам.</p></section></article>`;
   }
   function ensureLibrary() {
     if(customElements.get('model-viewer'))return Promise.resolve();
@@ -49,7 +68,8 @@ window.SaliniExperience = (() => {
   function mountViewer(section, getConfiguration) {
     const poster=section.querySelector('.form-viewer-poster'), mount=section.querySelector('.form-viewer-mount'),
       start=section.querySelector('[data-load-model]'),status=section.querySelector('[role=status]'),tools=section.querySelector('.form-viewer-tools');
-    let model,dead=false,visible=false,rotating=false,loadTimer;
+    let model,dead=false,visible=false,rotating=false,loadTimer,loading=false,entryDone=false;
+    const automatic=section.hasAttribute('data-auto-model');
     const reduce=matchMedia('(prefers-reduced-motion: reduce)');
     function appearance() {
       if(!model?.model)return;
@@ -57,30 +77,34 @@ window.SaliniExperience = (() => {
       const colour=window.SaliniAtelier.colours.find(c=>c[0]===value.ral)?.[2]||'#F1F0EA';
       model.model.materials.filter(m=>m.name.startsWith('body_')).forEach(m=>{
         m.pbrMetallicRoughness.setBaseColorFactor(colour);
-        m.pbrMetallicRoughness.setRoughnessFactor(value.finish==='gloss'?.16:.38);
+        m.pbrMetallicRoughness.setRoughnessFactor(value.finish==='gloss'?.18:.57);
         m.pbrMetallicRoughness.setMetallicFactor(0);
       });
     }
-    function motion(){if(!model)return;model.autoRotate=rotating&&visible&&!mount.hidden&&!document.hidden&&!reduce.matches;}
+    function motion(){
+      if(!model)return;
+      model.autoRotate=rotating&&visible&&!mount.hidden&&!document.hidden&&!reduce.matches;
+      if(automatic&&visible&&model.loaded&&!entryDone){entryDone=true;if(!reduce.matches)model.cameraOrbit='30deg 65deg auto';}
+    }
     async function load() {
       if(model){poster.hidden=true;mount.hidden=false;tools.hidden=false;motion();return;}
-      start.disabled=true;mount.hidden=false;status.textContent='Открываем форму…';
+      if(loading)return;loading=true;start.disabled=true;mount.hidden=false;status.textContent='Открываем форму…';
       try {
         await ensureLibrary();if(dead)return;
         model=document.createElement('model-viewer');
         model.setAttribute('src',new URL(`assets/model-${section.dataset.formViewer}.glb?v=mineral-3`,document.baseURI));
         model.setAttribute('alt',section.getAttribute('aria-label'));
         model.setAttribute('camera-controls','');model.setAttribute('disable-zoom','');model.setAttribute('touch-action','pan-y');
-        model.setAttribute('camera-orbit','30deg 65deg auto');model.setAttribute('field-of-view','30deg');
+        model.setAttribute('camera-orbit',automatic&&!reduce.matches?'40deg 68deg auto':'30deg 65deg auto');model.setAttribute('interpolation-decay','160');model.setAttribute('field-of-view','30deg');
         model.setAttribute('min-camera-orbit','auto 10deg 70%');model.setAttribute('max-camera-orbit','auto 89deg 180%');
-        model.setAttribute('shadow-intensity','1');model.setAttribute('shadow-softness','1');
-        model.setAttribute('exposure','.72');model.setAttribute('environment-image','neutral');
+        model.setAttribute('shadow-intensity','.55');model.setAttribute('shadow-softness','1');
+        model.setAttribute('exposure','.82');model.setAttribute('tone-mapping','neutral');model.setAttribute('environment-image',new URL('assets/water-studio-512.hdr',document.baseURI).href);
         model.setAttribute('interaction-prompt','none');model.setAttribute('rotation-per-second','8deg');
-        model.addEventListener('load',()=>{clearTimeout(loadTimer);if(dead)return;appearance();poster.hidden=true;tools.hidden=false;status.textContent='';start.disabled=false;motion();});
-        const failed=()=>{clearTimeout(loadTimer);if(dead)return;status.textContent='3D сейчас недоступно. Попробуйте ещё раз или посмотрите фотографию.';model?.remove();model=null;poster.hidden=false;tools.hidden=true;start.disabled=false;};
+        model.addEventListener('load',()=>{clearTimeout(loadTimer);if(dead)return;loading=false;appearance();poster.hidden=true;tools.hidden=false;status.textContent='';start.disabled=false;motion();});
+        const failed=()=>{clearTimeout(loadTimer);if(dead)return;status.textContent='3D сейчас недоступно. Попробуйте ещё раз или посмотрите фотографию.';model?.remove();model=null;loading=false;poster.hidden=false;tools.hidden=true;start.disabled=false;};
         model.addEventListener('error',failed);loadTimer=setTimeout(failed,25000);
         mount.append(model);
-      } catch {if(!dead){status.textContent='Не удалось загрузить 3D. Можно попробовать ещё раз.';start.disabled=false;}}
+      } catch {loading=false;if(!dead){status.textContent='Не удалось загрузить 3D. Можно попробовать ещё раз.';start.disabled=false;}}
     }
     start.addEventListener('click',load);
     section.querySelector('[data-model-photo]').addEventListener('click',()=>{poster.hidden=false;mount.hidden=true;tools.hidden=true;if(model)model.autoRotate=false;});
@@ -89,13 +113,16 @@ window.SaliniExperience = (() => {
       section.querySelectorAll('[data-model-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
     }));
     section.querySelector('[data-model-rotate]').addEventListener('click',e=>{rotating=!rotating;e.currentTarget.setAttribute('aria-pressed',String(rotating));motion();});
-    const io=new IntersectionObserver(e=>{visible=e[0].isIntersecting;motion();},{threshold:.1});io.observe(section);
+    const io=new IntersectionObserver(e=>{visible=e[0].isIntersecting;if(visible&&automatic)load();motion();},{threshold:.1});io.observe(section);
+    const prefetch=automatic?new IntersectionObserver(e=>{if(e[0].isIntersecting&&!navigator.connection?.saveData)load();},{rootMargin:'650px 0px'}):null;prefetch?.observe(section);
+    section.addEventListener('pointerdown',()=>{entryDone=true;},{once:true});
     document.addEventListener('visibilitychange',motion);reduce.addEventListener('change',motion);
     const onConfig=()=>appearance();document.addEventListener('salini:configuration',onConfig);
-    const dispose=()=>{dead=true;clearTimeout(loadTimer);io.disconnect();document.removeEventListener('visibilitychange',motion);reduce.removeEventListener('change',motion);document.removeEventListener('salini:configuration',onConfig);if(model){model.autoRotate=false;model.removeAttribute('src');model.remove();}};
+    const dispose=()=>{dead=true;clearTimeout(loadTimer);io.disconnect();prefetch?.disconnect();document.removeEventListener('visibilitychange',motion);reduce.removeEventListener('change',motion);document.removeEventListener('salini:configuration',onConfig);if(model){model.autoRotate=false;model.removeAttribute('src');model.remove();}};
     cleanup.push(dispose);return {appearance,dispose,load};
   }
   function mount(root,path,products) {
+    if(path==='/')mountPortal(root);
     if(path.startsWith('/product/')) {
       root.querySelectorAll('[data-form-viewer]').forEach(section=>{const controller=mountViewer(section,()=>{
         const p=products.find(p=>p.id===section.dataset.formViewer),params=new URLSearchParams(location.search);
@@ -113,7 +140,7 @@ window.SaliniExperience = (() => {
     cleanup.push(()=>{filmDead=true;filmDispose?.();});
     root.querySelectorAll('[data-chapter]').forEach(link=>link.addEventListener('click',e=>{e.preventDefault();root.querySelector('#'+link.dataset.chapter)?.scrollIntoView({behavior:'instant',block:'start'});if(link.dataset.chapter==='form')current?.load();}));
     function formLink(){const p=products.find(p=>p.id===chosen),v=p.variants.find(v=>v.material==='sStone')||p.variants[0],params=new URLSearchParams({variant:v.id});if(ral)params.set('ral',ral);const a=root.querySelector('[data-story-product]');a.href=`#/product/${chosen}?${params}`;a.innerHTML=`Выбрать ${esc(p.collection||p.name)} <span>↗</span>`;}
-    function mountForm(){const p=products.find(p=>p.id===chosen);current?.dispose();const holder=root.querySelector('[data-story-viewer]');holder.innerHTML=viewer(p,{large:true});current=mountViewer(holder.querySelector('[data-form-viewer]'),()=>({ral,finish:'matte'}));formLink();}
+    function mountForm(){const p=products.find(p=>p.id===chosen);current?.dispose();const holder=root.querySelector('[data-story-viewer]');holder.innerHTML=viewer(p,{large:true});current=mountViewer(holder.querySelector('[data-form-viewer]'),()=>({ral,finish:'matte'}));root.querySelector('[data-story-gallery]').innerHTML=roomGallery(p);formLink();}
     mountForm();
     root.querySelectorAll('[data-story-form]').forEach(button=>button.addEventListener('click',()=>{if(chosen===button.dataset.storyForm)return;chosen=button.dataset.storyForm;root.querySelectorAll('[data-story-form]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));mountForm();}));
     root.querySelectorAll('[data-story-ral]').forEach(button=>button.addEventListener('click',()=>{ral=button.dataset.storyRal;root.querySelectorAll('[data-story-ral]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));root.querySelector('[data-story-colour-label]').textContent=ral?'RAL '+ral:'Базовый белый';current?.appearance();formLink();}));
@@ -129,6 +156,6 @@ window.SaliniExperience = (() => {
     setTimeout(finish,1100);setTimeout(()=>veil.remove(),2400);
   }
   const dispose=()=>{cleanup.forEach(f=>f());cleanup=[];};
-  return {modelIDs,hasModel,viewer,portal,render,mount,dispose,intro};
+  return {modelIDs,hasModel,viewer,portal,waterPortal,render,mount,dispose,intro};
 })();
 if(typeof document!=='undefined')window.SaliniExperience.intro();
